@@ -1,0 +1,184 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 4,
+    "identityHash": "db9bbeb1dbe05d0f6f06b588364a7719",
+    "entities": [
+      {
+        "tableName": "cartas_guardadas",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idLocal` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `cardId` INTEGER NOT NULL, `nombre` TEXT NOT NULL, `nombreEs` TEXT, `tipo` TEXT NOT NULL, `descripcion` TEXT NOT NULL, `ataque` INTEGER, `defensa` INTEGER, `urlImagen` TEXT NOT NULL, `setNombre` TEXT NOT NULL, `setCodigo` TEXT NOT NULL, `fechaGuardado` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "idLocal",
+            "columnName": "idLocal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cardId",
+            "columnName": "cardId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombreEs",
+            "columnName": "nombreEs",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descripcion",
+            "columnName": "descripcion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ataque",
+            "columnName": "ataque",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "defensa",
+            "columnName": "defensa",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "urlImagen",
+            "columnName": "urlImagen",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "setNombre",
+            "columnName": "setNombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "setCodigo",
+            "columnName": "setCodigo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fechaGuardado",
+            "columnName": "fechaGuardado",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "idLocal"
+          ]
+        }
+      },
+      {
+        "tableName": "decks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `updatedAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "deck_cards",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`deckId` INTEGER NOT NULL, `cardId` INTEGER NOT NULL, `quantity` INTEGER NOT NULL, PRIMARY KEY(`deckId`, `cardId`), FOREIGN KEY(`deckId`) REFERENCES `decks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "deckId",
+            "columnName": "deckId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cardId",
+            "columnName": "cardId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quantity",
+            "columnName": "quantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "deckId",
+            "cardId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_deck_cards_cardId",
+            "unique": false,
+            "columnNames": [
+              "cardId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_deck_cards_cardId` ON `${TABLE_NAME}` (`cardId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "decks",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "deckId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'db9bbeb1dbe05d0f6f06b588364a7719')"
+    ]
+  }
+}

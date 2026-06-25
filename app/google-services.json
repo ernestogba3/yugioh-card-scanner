@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "731542544017",
+    "project_id": "yugiohscanner-1c676",
+    "storage_bucket": "yugiohscanner-1c676.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:731542544017:android:0bdc8ec6e62fddb270e930",
+        "android_client_info": {
+          "package_name": "com.example.yugiohscanner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "731542544017-1hor2lr12jvae5pvcn06o9itpph4ft2j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.yugiohscanner",
+            "certificate_hash": "4c60df9e7925d1ba6702c7f7916d431fb7d0dab0"
+          }
+        },
+        {
+          "client_id": "731542544017-dd5bbnh8n13b6iid612290p0i1goqua3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHAK-I5EpkE94rXHfwYpzI3dA2Ki-u6yE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "731542544017-dd5bbnh8n13b6iid612290p0i1goqua3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

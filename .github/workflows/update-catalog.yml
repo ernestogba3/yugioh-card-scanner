@@ -1,0 +1,52 @@
+name: Actualizar catálogo
+
+# Regenera el catálogo de cartas tirando DIRECTAMENTE de la API pública de YGOPRODeck
+# (no usa PostgreSQL) y lo publica en el repo. La app lo descarga desde el "raw" URL.
+#
+# - Programado: una vez por semana (lunes 04:00 UTC).
+# - Manual: pestaña Actions -> "Actualizar catálogo" -> Run workflow.
+on:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+# Necesario para que el workflow pueda hacer commit del catálogo regenerado.
+permissions:
+  contents: write
+
+jobs:
+  regenerar-catalogo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar el repo
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias del backend
+        working-directory: backend
+        run: npm ci
+
+      - name: Generar catalog.json + manifest.json desde YGOPRODeck
+        working-directory: backend
+        run: npm run export-catalog
+        # GITHUB_REPOSITORY y GITHUB_REF_NAME los inyecta GitHub; el script construye con ellos
+        # la URL pública de descarga del catálogo (ver export-catalog.js -> urlCatalogo()).
+
+      - name: Commitear si el catálogo cambió
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/assets/database/catalog.json app/src/main/assets/database/manifest.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios en el catálogo; nada que commitear."
+          else
+            git commit -m "chore(catalogo): actualización automática desde YGOPRODeck"
+            git push
+          fi
