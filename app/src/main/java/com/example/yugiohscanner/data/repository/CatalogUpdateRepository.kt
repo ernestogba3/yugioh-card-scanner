@@ -120,13 +120,12 @@ class CatalogUpdateRepository(private val context: Context) {
         // "version"; mientras la local sea esta, se ofrece la primera actualización disponible.
         private const val VERSION_EMPAQUETADA = "empaquetada"
 
-        // URL del manifest publicado por el GitHub Action.
-        // TODO(usuario): cambia OWNER/REPO por tu repositorio de GitHub (ver docs).
+        // URL del manifest publicado por el GitHub Action (repo: ernestogba3/yugioh-card-scanner).
         private const val MANIFEST_URL =
-            "https://raw.githubusercontent.com/OWNER/REPO/main/app/src/main/assets/database/manifest.json"
+            "https://raw.githubusercontent.com/ernestogba3/yugioh-card-scanner/main/app/src/main/assets/database/manifest.json"
 
         // Respaldo por si el manifest no trae "url".
         private const val CATALOG_URL_FALLBACK =
-            "https://raw.githubusercontent.com/OWNER/REPO/main/app/src/main/assets/database/catalog.json"
+            "https://raw.githubusercontent.com/ernestogba3/yugioh-card-scanner/main/app/src/main/assets/database/catalog.json"
     }
 }
