@@ -3,9 +3,9 @@ package com.example.yugiohscanner.ui.theme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-/** Degradado de fondo de la app (atmósfera "bóveda del Milenio"). */
+/** Degradado de fondo de la app (atmósfera "carpeta de cuero" del binder cálido). */
 val FondoGradiente = Brush.verticalGradient(
-    colors = listOf(AzulOscuro, AzulMedio, AzulCarta)
+    colors = listOf(CueroFondo, CueroMedio, CueroClaro)
 )
 
 /**

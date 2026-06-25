@@ -54,7 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.yugiohscanner.ui.components.CartaInvocable
+import com.example.yugiohscanner.ui.components.CartaHolografica
 import com.example.yugiohscanner.data.catalog.CardArt
 import com.example.yugiohscanner.data.model.CartaYuGiOh
 import com.example.yugiohscanner.ui.theme.OroClaro
@@ -93,6 +93,11 @@ fun DetalleCartaScreen(
     var artSeleccionado by remember(carta.id, artIdInicial) { mutableStateOf(artIdInicial) }
     val arteActual = artes.firstOrNull { it.artId == artSeleccionado }
     val urlImagenPrincipal = arteActual?.url ?: carta.imagenes.firstOrNull()?.urlImagen
+
+    // Datos de la copia que posees: condición física y rareza. Se declaran aquí arriba porque la
+    // rareza también controla el brillo holográfico de la carta. Se reinician al cambiar de carta.
+    var condicion by remember(carta.id) { mutableStateOf<String?>(null) }
+    var rareza by remember(carta.id) { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -143,11 +148,13 @@ fun DetalleCartaScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // "Arena de invocación": carta con holográfico interactivo + botón Invocar (Fase 6).
-        CartaInvocable(
+        // Carta con holográfico interactivo: arrástrala para inclinarla; el brillo cambia con la
+        // rareza seleccionada abajo (foil/dorado/arcoíris/prismático).
+        CartaHolografica(
             urlImagen = urlImagenPrincipal,
             contentDescription = nombrePrincipal,
             acento = acento,
+            rareza = rareza,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -276,8 +283,7 @@ fun DetalleCartaScreen(
         }
 
         // Selectores de la copia que posees: condición física y rareza de la impresión.
-        var condicion by remember { mutableStateOf<String?>(null) }
-        var rareza by remember { mutableStateOf<String?>(null) }
+        // (El estado de ambos se declara arriba, porque la rareza controla el brillo de la carta.)
         SelectorOpcional(
             label = "Condición",
             opciones = CONDICIONES,

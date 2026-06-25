@@ -1,0 +1,33 @@
+# Normaliza fin de línea: en el repo todo va con LF; Git no reconvierte ni avisa.
+* text=auto eol=lf
+
+# Código y texto del proyecto -> LF explícito
+*.kt      text eol=lf
+*.kts     text eol=lf
+*.java    text eol=lf
+*.xml     text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.properties text eol=lf
+*.pro     text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.js      text eol=lf
+*.gradle  text eol=lf
+
+# Scripts de Windows -> CRLF (los espera cmd)
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+
+# Binarios: nunca tocar
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.webp    binary
+*.gif     binary
+*.ttf     binary
+*.otf     binary
+*.jar     binary
+*.keystore binary
+*.jks     binary
+*.db      binary

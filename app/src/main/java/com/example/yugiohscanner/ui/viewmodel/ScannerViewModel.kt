@@ -44,7 +44,8 @@ data class OpcionesFiltro(
 val RAREZAS = listOf(
     "Common", "Rare", "Super Rare", "Ultra Rare", "Secret Rare", "Ultimate Rare",
     "Ghost Rare", "Gold Rare", "Starlight Rare", "Collector's Rare",
-    "Prismatic Secret Rare", "Quarter Century Secret Rare"
+    "Prismatic Secret Rare", "Quarter Century Secret Rare",
+    "Parallel Rare", "Platinum Rare", "Mosaic Rare", "Starfoil Rare", "Shatterfoil Rare"
 )
 
 /** Razas/tipos de monstruo más comunes (deben coincidir con los valores del catálogo). */
