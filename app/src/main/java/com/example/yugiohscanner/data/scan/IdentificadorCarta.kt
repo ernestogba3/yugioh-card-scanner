@@ -85,21 +85,12 @@ class IdentificadorCarta(private val repo: CardRepository) {
     }
 
     /** OCR del recorte del passcode → lista de candidatos numéricos (7-8 dígitos) a probar. */
-    private suspend fun leerPasscodes(recorte: Bitmap): List<Long> {
-        val texto = ocr(ampliar(recorte, 4))
-        // Los passcodes impresos pueden llevar ceros a la izquierda; toLong() los descarta, que
-        // es justo cómo está guardado el id en el catálogo.
-        return Regex("\\d{7,8}").findAll(texto)
-            .mapNotNull { it.value.toLongOrNull() }
-            .distinct()
-            .toList()
-    }
+    private suspend fun leerPasscodes(recorte: Bitmap): List<Long> =
+        extraerPasscodes(ocr(ampliar(recorte, 4)))
 
     /** OCR del recorte del set code → primer código con forma de edición (p. ej. "LOB-EN001"), o null. */
-    private suspend fun leerSetCode(recorte: Bitmap): String? {
-        val texto = ocr(ampliar(recorte, 4)).uppercase()
-        return Regex("[A-Z0-9]{2,6}-[A-Z]{1,3}\\d{2,4}").find(texto)?.value
-    }
+    private suspend fun leerSetCode(recorte: Bitmap): String? =
+        extraerSetCode(ocr(ampliar(recorte, 4)))
 
     /** Pasa un bitmap por ML Kit y devuelve todo el texto reconocido (vacío si falla). */
     private suspend fun ocr(bitmap: Bitmap): String = try {
@@ -116,5 +107,25 @@ class IdentificadorCarta(private val repo: CardRepository) {
 
     companion object {
         private const val TAG = "IdentificadorCarta"
+
+        // Regex compartidos: puros (texto → resultado), sin Android ni ML Kit, para poder
+        // probarlos en tests unitarios sin cámara.
+        private val REGEX_PASSCODE = Regex("\\d{7,8}")
+        private val REGEX_SET_CODE = Regex("[A-Z0-9]{2,6}-[A-Z]{1,3}\\d{2,4}")
+
+        /**
+         * Extrae candidatos de passcode (7-8 dígitos) de un texto OCR, sin duplicados.
+         * Los passcodes impresos pueden llevar ceros a la izquierda; `toLong()` los descarta, que
+         * es justo cómo está guardado el id en el catálogo.
+         */
+        fun extraerPasscodes(texto: String): List<Long> =
+            REGEX_PASSCODE.findAll(texto)
+                .mapNotNull { it.value.toLongOrNull() }
+                .distinct()
+                .toList()
+
+        /** Primer código con forma de edición (p. ej. "LOB-EN001") de un texto OCR, o null. */
+        fun extraerSetCode(texto: String): String? =
+            REGEX_SET_CODE.find(texto.uppercase())?.value
     }
 }
