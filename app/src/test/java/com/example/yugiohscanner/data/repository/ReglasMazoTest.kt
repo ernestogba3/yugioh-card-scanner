@@ -1,5 +1,6 @@
 package com.example.yugiohscanner.data.repository
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -67,5 +68,41 @@ class ReglasMazoTest {
         assertTrue(ReglasMazo.MAX_COPIAS == 3)
         // Invariante: el mínimo nunca puede superar al máximo.
         assertTrue(ReglasMazo.PRINCIPAL_MIN < ReglasMazo.PRINCIPAL_MAX)
+    }
+
+    // --- Forbidden & Limited List (ban list del TCG) ----------------------------------------
+
+    @Test
+    fun estado_banlist_mapea_los_valores_de_ygoprodeck() {
+        // El catálogo real usa "Forbidden" para las prohibidas (verificado en catalog.json);
+        // aceptamos también "Banned" por robustez.
+        assertEquals(EstadoBanlist.PROHIBIDA, ReglasMazo.estadoBanlist("Forbidden"))
+        assertEquals(EstadoBanlist.PROHIBIDA, ReglasMazo.estadoBanlist("Banned"))
+        assertEquals(EstadoBanlist.LIMITADA, ReglasMazo.estadoBanlist("Limited"))
+        assertEquals(EstadoBanlist.SEMILIMITADA, ReglasMazo.estadoBanlist("Semi-Limited"))
+        assertEquals(EstadoBanlist.LIBRE, ReglasMazo.estadoBanlist(null))
+        assertEquals(EstadoBanlist.LIBRE, ReglasMazo.estadoBanlist(""))
+    }
+
+    @Test
+    fun estado_banlist_es_insensible_a_mayusculas_y_espacios() {
+        assertEquals(EstadoBanlist.PROHIBIDA, ReglasMazo.estadoBanlist(" banned "))
+        assertEquals(EstadoBanlist.SEMILIMITADA, ReglasMazo.estadoBanlist("semi-limited"))
+    }
+
+    @Test
+    fun max_copias_respeta_la_ban_list() {
+        assertEquals(0, ReglasMazo.maxCopias("Banned"))       // Prohibida: no se puede jugar
+        assertEquals(1, ReglasMazo.maxCopias("Limited"))      // Limitada: 1 copia
+        assertEquals(2, ReglasMazo.maxCopias("Semi-Limited")) // Semi-limitada: 2 copias
+        assertEquals(3, ReglasMazo.maxCopias(null))           // Sin restricción: 3 copias
+    }
+
+    @Test
+    fun cada_estado_conoce_su_maximo_de_copias() {
+        assertEquals(0, EstadoBanlist.PROHIBIDA.maxCopias)
+        assertEquals(1, EstadoBanlist.LIMITADA.maxCopias)
+        assertEquals(2, EstadoBanlist.SEMILIMITADA.maxCopias)
+        assertEquals(3, EstadoBanlist.LIBRE.maxCopias)
     }
 }

@@ -19,7 +19,9 @@ data class CartaYuGiOh(
     val sets: List<SetCarta>? = null,
     // Precios promedio de la carta (offline, del catálogo). null = sin dato.
     val precioCmEur: String? = null,   // CardMarket EUR
-    val precioTcgUsd: String? = null   // TCGPlayer USD
+    val precioTcgUsd: String? = null,  // TCGPlayer USD
+    // Estado en la Forbidden & Limited List del TCG: "Banned"/"Limited"/"Semi-Limited" o null.
+    val banTcg: String? = null
 )
 
 data class ImagenCarta(

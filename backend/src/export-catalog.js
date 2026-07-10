@@ -135,6 +135,8 @@ async function main() {
             imgSmall: c.card_images?.[0]?.image_url_small ?? null,
             priceCm: precioValido(cp?.cardmarket_price), // CardMarket EUR (promedio)
             priceTcg: precioValido(cp?.tcgplayer_price), // TCGPlayer USD (promedio)
+            // Estado en la lista de Prohibidas y Limitadas (TCG): "Banned"/"Limited"/"Semi-Limited".
+            banTcg: c.banlist_info?.ban_tcg ?? null,
             images,
             prints,
         };

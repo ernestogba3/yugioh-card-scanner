@@ -277,6 +277,13 @@ private fun SugerenciaItem(sugerencia: SugerenciaArquetipo, onAbrir: () -> Unit)
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (sugerencia.potencia > 0) {
+                Text(
+                    "⭐ ${sugerencia.potencia} carta(s) clave del meta (Limitadas/Semi)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = OroClaro
+                )
+            }
         }
     }
 }

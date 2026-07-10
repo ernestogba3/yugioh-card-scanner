@@ -210,6 +210,7 @@ object CatalogImporter {
         var imgSmall: String? = null
         var priceCm: String? = null
         var priceTcg: String? = null
+        var banTcg: String? = null
         val printsCarta = ArrayList<CardPrint>()
         val artesCarta = ArrayList<CardArt>()
 
@@ -232,6 +233,7 @@ object CatalogImporter {
                 "imgSmall" -> imgSmall = reader.nextStringOrNull()
                 "priceCm" -> priceCm = reader.nextStringOrNull()
                 "priceTcg" -> priceTcg = reader.nextStringOrNull()
+                "banTcg" -> banTcg = reader.nextStringOrNull()
                 "images" -> {
                     reader.beginArray()
                     while (reader.hasNext()) {
@@ -297,7 +299,8 @@ object CatalogImporter {
                 imageUrl = img,
                 imageUrlSmall = imgSmall,
                 priceCm = priceCm,
-                priceTcg = priceTcg
+                priceTcg = priceTcg,
+                banTcg = banTcg
             )
         )
         // Asigna el cardId ahora que conocemos el id (independiente del orden del JSON).

@@ -15,7 +15,7 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [Card::class, CardPrint::class, CardSet::class, CardHash::class, CardArt::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class CatalogDatabase : RoomDatabase() {

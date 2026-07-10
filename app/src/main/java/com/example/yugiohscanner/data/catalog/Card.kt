@@ -31,5 +31,8 @@ data class Card(
     val imageUrl: String,            // imagen grande (Coil la descarga si hay red)
     val imageUrlSmall: String?,
     val priceCm: String? = null,     // CardMarket EUR (promedio de la carta)
-    val priceTcg: String? = null     // TCGPlayer USD (promedio de la carta)
+    val priceTcg: String? = null,    // TCGPlayer USD (promedio de la carta)
+    // Estado en la Forbidden & Limited List del TCG: "Banned"/"Limited"/"Semi-Limited" o null
+    // (sin restricción = 3 copias). Rige el máximo de copias por carta en el deck builder.
+    val banTcg: String? = null
 )

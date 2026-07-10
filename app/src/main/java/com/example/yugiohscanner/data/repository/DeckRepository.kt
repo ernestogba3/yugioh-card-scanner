@@ -12,10 +12,22 @@ import kotlinx.coroutines.flow.Flow
  * Reglas de tamaño de un mazo según Yu-Gi-Oh. La app trata el mazo como Deck Principal + Extra
  * (no hay Side). Las cartas de Fusión/Sincronía/XYZ/Link van al Extra; el resto al Principal.
  */
+/**
+ * Estado de una carta en la Forbidden & Limited List (TCG). Cada estado impone un máximo de
+ * copias por mazo. `banTcg` viene del catálogo (YGOPRODeck: "Banned"/"Limited"/"Semi-Limited").
+ */
+enum class EstadoBanlist(val etiqueta: String, val maxCopias: Int) {
+    PROHIBIDA("Prohibida", 0),
+    LIMITADA("Limitada", 1),
+    SEMILIMITADA("Semi-limitada", 2),
+    LIBRE("Sin restricción", 3)
+}
+
 object ReglasMazo {
     const val PRINCIPAL_MIN = 40
     const val PRINCIPAL_MAX = 60
     const val EXTRA_MAX = 15
+    /** Tope general de copias por carta (Sin restricción). Los límites por F&L pueden ser menores. */
     const val MAX_COPIAS = 3
 
     /** ¿Esta carta pertenece al Deck Extra (no cuenta para el 40–60 del Principal)? */
@@ -23,28 +35,51 @@ object ReglasMazo {
         val t = type.lowercase()
         return "fusion" in t || "synchro" in t || "xyz" in t || "link" in t
     }
+
+    /** Traduce el campo `banTcg` del catálogo al estado de la ban list. */
+    fun estadoBanlist(banTcg: String?): EstadoBanlist = when (banTcg?.trim()?.lowercase()) {
+        "banned", "forbidden" -> EstadoBanlist.PROHIBIDA
+        "limited" -> EstadoBanlist.LIMITADA
+        "semi-limited" -> EstadoBanlist.SEMILIMITADA
+        else -> EstadoBanlist.LIBRE
+    }
+
+    /** Máximo de copias legales de una carta según su estado F&L (0/1/2/3). */
+    fun maxCopias(banTcg: String?): Int = estadoBanlist(banTcg).maxCopias
 }
 
 /** Una carta dentro de un mazo, ya lista para pintar: ficha + cuántas pide y cuántas posees. */
 data class CartaEnMazo(
     val carta: CartaYuGiOh,
-    val cantidad: Int,        // copias en el mazo (1..3)
+    val cantidad: Int,        // copias en el mazo
     val enColeccion: Int      // copias que el usuario tiene en su colección
 ) {
     val faltan: Int get() = (cantidad - enColeccion).coerceAtLeast(0)
+
+    /** Estado F&L de la carta (Prohibida/Limitada/Semi/Libre). */
+    val estadoBanlist: EstadoBanlist get() = ReglasMazo.estadoBanlist(carta.banTcg)
+
+    /** true si el nº de copias supera el máximo legal de la ban list (mazo no legal). */
+    val excedeLimite: Boolean get() = cantidad > estadoBanlist.maxCopias
 }
 
 /**
  * Sugerencia de mazo: un arquetipo que el usuario YA colecciona, con cuántas cartas distintas
- * tiene de él y cuántas existen en total. Sirve para proponer "completa tu mazo de X".
+ * tiene de él, cuántas existen en total y cuántas de ellas son "cartas potentes" (Limitadas/
+ * Semi-limitadas por la ban list, buen proxy de fuerza en el meta). Sirve para proponer
+ * "completa tu mazo de X" priorizando los arquetipos con núcleo más fuerte.
  */
 data class SugerenciaArquetipo(
     val arquetipo: String,
     val poseidas: Int,        // cartas distintas de este arquetipo que el usuario tiene
-    val totalCatalogo: Int    // cartas distintas de este arquetipo que existen en el catálogo
+    val totalCatalogo: Int,   // cartas distintas de este arquetipo que existen en el catálogo
+    val potencia: Int = 0     // cartas potentes (Limitadas/Semi) del arquetipo que ya posees
 ) {
     /** % de cartas del arquetipo que ya posee (0..100). */
     val porcentaje: Int get() = if (totalCatalogo == 0) 0 else (poseidas * 100 / totalCatalogo)
+
+    /** Puntuación meta: cuántas cartas tienes + peso extra por las potentes (staples del meta). */
+    val puntuacionMeta: Int get() = poseidas + potencia * 2
 }
 
 /** Una carta de un arquetipo al previsualizarlo: su ficha y cuántas copias posee el usuario. */
@@ -97,14 +132,20 @@ class DeckRepository(context: Context) {
     }
 
     /**
-     * Añade una copia de la carta al mazo respetando las reglas (máx. 3 copias, Principal ≤ 60,
-     * Extra ≤ 15). Devuelve un texto de error si NO se pudo añadir, o null si se añadió bien.
+     * Añade una copia de la carta al mazo respetando las reglas: ban list (Prohibida = 0,
+     * Limitada = 1, Semi = 2, resto = 3), Principal ≤ 60 y Extra ≤ 15. Devuelve un texto de
+     * error si NO se pudo añadir, o null si se añadió bien.
      */
     suspend fun anadirCarta(deckId: Long, cardId: Long): String? {
         val card = catalogDao.obtenerCartaPorId(cardId) ?: return "Carta no encontrada"
+        val estado = ReglasMazo.estadoBanlist(card.banTcg)
+        if (estado == EstadoBanlist.PROHIBIDA) return "«${card.nameEn}» está Prohibida (Forbidden)"
+
         val actual = deckDao.cartaEnMazo(deckId, cardId)
         val copias = actual?.quantity ?: 0
-        if (copias >= ReglasMazo.MAX_COPIAS) return "Máximo ${ReglasMazo.MAX_COPIAS} copias por carta"
+        if (copias >= estado.maxCopias) {
+            return "Máximo ${estado.maxCopias} cop. de «${card.nameEn}» (${estado.etiqueta})"
+        }
 
         comprobarHueco(deckId, card.type)?.let { return it }
 
@@ -122,9 +163,12 @@ class DeckRepository(context: Context) {
             tocar(deckId)
             return null
         }
-        if (nueva > ReglasMazo.MAX_COPIAS) return "Máximo ${ReglasMazo.MAX_COPIAS} copias por carta"
         if (delta > 0) {
             val card = catalogDao.obtenerCartaPorId(cardId)
+            val estado = ReglasMazo.estadoBanlist(card?.banTcg)
+            if (nueva > estado.maxCopias) {
+                return "Máximo ${estado.maxCopias} copias (${estado.etiqueta})"
+            }
             if (card != null) comprobarHueco(deckId, card.type)?.let { return it }
         }
         deckDao.guardarCartaEnMazo(actual.copy(quantity = nueva))
@@ -192,22 +236,29 @@ class DeckRepository(context: Context) {
         val idsPoseidos = cartaDao.obtenerCardIds().distinct()
         if (idsPoseidos.isEmpty()) return emptyList()
 
-        // Arquetipo de cada carta poseída (en lotes: SQLite limita el IN a 999 variables).
-        val poseidasPorArquetipo = idsPoseidos
+        // Cartas poseídas con su ficha (arquetipo + estado F&L), en lotes (SQLite limita el IN a 999).
+        val cartasPoseidas = idsPoseidos
             .map { it.toLong() }
             .chunked(900)
-            .flatMap { catalogDao.obtenerArquetipos(it) }
-            .mapNotNull { it.archetype?.takeIf { a -> a.isNotBlank() } }
-            .groupingBy { it }
-            .eachCount()
-        if (poseidasPorArquetipo.isEmpty()) return emptyList()
+            .flatMap { catalogDao.obtenerCartasPorIds(it) }
+            .filter { !it.archetype.isNullOrBlank() }
+        if (cartasPoseidas.isEmpty()) return emptyList()
 
         val totales = catalogDao.obtenerConteoArquetipos().associate { it.archetype to it.total }
 
-        return poseidasPorArquetipo
-            .map { (arq, n) -> SugerenciaArquetipo(arq, n, totales[arq] ?: n) }
+        // Por arquetipo: cuántas cartas distintas tienes y cuántas son "potentes" (Limitadas/Semi),
+        // buen proxy de fuerza en el meta (las cartas que la ban list frena suelen ser las clave).
+        return cartasPoseidas
+            .groupBy { it.archetype!! }
+            .map { (arq, cartas) ->
+                val potencia = cartas.count {
+                    ReglasMazo.estadoBanlist(it.banTcg) != EstadoBanlist.LIBRE
+                }
+                SugerenciaArquetipo(arq, cartas.size, totales[arq] ?: cartas.size, potencia)
+            }
             .sortedWith(
-                compareByDescending<SugerenciaArquetipo> { it.poseidas }
+                compareByDescending<SugerenciaArquetipo> { it.puntuacionMeta }
+                    .thenByDescending { it.poseidas }
                     .thenByDescending { it.porcentaje }
             )
             .take(maximo)
@@ -240,15 +291,32 @@ class DeckRepository(context: Context) {
         val seleccion =
             if (soloPoseidas) cartas.filter { (poseidasPorId[it.id.toInt()] ?: 0) > 0 } else cartas
 
+        // Orden "meta": primero las cartas potentes (Limitadas/Semi = clave del arquetipo), luego
+        // los monstruos, y por último mágicas/trampas. Así el mazo generado prioriza el núcleo fuerte.
+        val ordenadas = seleccion.sortedByDescending { card ->
+            var peso = 0
+            when (ReglasMazo.estadoBanlist(card.banTcg)) {
+                EstadoBanlist.LIMITADA -> peso += 30
+                EstadoBanlist.SEMILIMITADA -> peso += 20
+                else -> {}
+            }
+            if (card.type.contains("Monster", ignoreCase = true)) peso += 5
+            peso
+        }
+
         val nuevoId = deckDao.crearMazo(
             Deck(name = arquetipo, description = "Mazo sugerido · $arquetipo")
         )
-        // Vuelca las cartas sin pasarse de los topes (Principal ≤ 60, Extra ≤ 15).
+        // Vuelca las cartas respetando la ban list (máx. legal por carta) y los topes de zona
+        // (Principal ≤ 60, Extra ≤ 15). Las Prohibidas se saltan (máx. legal = 0).
         var principal = 0
         var extra = 0
-        seleccion.forEach { card ->
+        ordenadas.forEach { card ->
+            val maxLegal = ReglasMazo.maxCopias(card.banTcg)
+            if (maxLegal == 0) return@forEach // Prohibida: no entra
             val deseadas =
-                if (soloPoseidas) (poseidasPorId[card.id.toInt()] ?: 1).coerceIn(1, ReglasMazo.MAX_COPIAS) else 1
+                if (soloPoseidas) (poseidasPorId[card.id.toInt()] ?: 1).coerceAtMost(maxLegal)
+                else maxLegal.coerceAtMost(1) // "todas": 1 copia de cada para caber más variedad
             val esExtra = ReglasMazo.esExtra(card.type)
             val hueco =
                 if (esExtra) ReglasMazo.EXTRA_MAX - extra else ReglasMazo.PRINCIPAL_MAX - principal

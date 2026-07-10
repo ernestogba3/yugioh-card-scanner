@@ -51,6 +51,8 @@ import coil.compose.AsyncImage
 import com.example.yugiohscanner.data.model.CartaYuGiOh
 import com.example.yugiohscanner.data.model.Deck
 import com.example.yugiohscanner.data.repository.CartaEnMazo
+import com.example.yugiohscanner.data.repository.EstadoBanlist
+import com.example.yugiohscanner.data.repository.ReglasMazo
 import com.example.yugiohscanner.ui.theme.ColorMagico
 import com.example.yugiohscanner.ui.theme.OroClaro
 import com.example.yugiohscanner.ui.theme.OroYuGiOh
@@ -116,6 +118,22 @@ internal fun DeckDetailScreen(deck: Deck, viewModel: DeckViewModel, onCerrar: ()
                 valor = "${stats.extra}/15",
                 valido = stats.extraValido,
                 modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Veredicto de legalidad (tamaño + ban list).
+        if (stats.total > 0) {
+            val (txtLegal, colLegal) = when {
+                stats.ilegales > 0 ->
+                    "⚠ ${stats.ilegales} carta(s) superan la ban list" to MaterialTheme.colorScheme.error
+                stats.legal -> "✓ Mazo legal" to ColorMagico
+                else -> "Ajusta el tamaño para que sea legal (Principal 40–60)" to MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            Text(
+                txtLegal,
+                style = MaterialTheme.typography.labelMedium,
+                color = colLegal,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
         }
 
@@ -304,13 +322,19 @@ private fun ResultadoBusquedaItem(carta: CartaYuGiOh, onAnadir: () -> Unit) {
         Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             ImagenCarta(carta)
             Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                carta.nombreEs?.takeIf { it.isNotBlank() } ?: carta.name,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    carta.nombreEs?.takeIf { it.isNotBlank() } ?: carta.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val estado = ReglasMazo.estadoBanlist(carta.banTcg)
+                if (estado != EstadoBanlist.LIBRE) {
+                    Spacer(modifier = Modifier.height(3.dp))
+                    BadgeBanlist(estado)
+                }
+            }
             IconButton(onClick = onAnadir) {
                 Icon(Icons.Default.Add, contentDescription = "Añadir al mazo", tint = OroYuGiOh)
             }
@@ -345,6 +369,10 @@ private fun CartaEnMazoItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(carta.type, style = MaterialTheme.typography.labelSmall, color = acento)
+                if (enMazo.estadoBanlist != EstadoBanlist.LIBRE || enMazo.excedeLimite) {
+                    Spacer(modifier = Modifier.height(3.dp))
+                    BadgeBanlist(enMazo.estadoBanlist, enMazo.excedeLimite)
+                }
                 if (enMazo.faltan > 0) {
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer,
@@ -385,4 +413,35 @@ private fun ImagenCarta(carta: CartaYuGiOh) {
             .clip(RoundedCornerShape(6.dp))
             .background(MaterialTheme.colorScheme.background)
     )
+}
+
+/**
+ * Pastilla con el estado de la carta en la Forbidden & Limited List. No dibuja nada si la carta
+ * es libre (3 copias) y no está excedida. Si [excede] es true (más copias que el límite legal),
+ * lo pinta en rojo aunque sea "libre" (no debería pasar, pero avisa por si acaso).
+ */
+@Composable
+private fun BadgeBanlist(estado: EstadoBanlist, excede: Boolean = false) {
+    if (estado == EstadoBanlist.LIBRE && !excede) return
+    val error = MaterialTheme.colorScheme.error
+    val (color, texto) = when {
+        excede && estado == EstadoBanlist.LIBRE -> error to "Ilegal"
+        estado == EstadoBanlist.PROHIBIDA -> error to "Prohibida"
+        estado == EstadoBanlist.LIMITADA -> error to "Limitada · 1"
+        estado == EstadoBanlist.SEMILIMITADA -> OroYuGiOh to "Semi · 2"
+        else -> error to "Ilegal"
+    }
+    Surface(
+        color = color.copy(alpha = 0.16f),
+        contentColor = color,
+        shape = RoundedCornerShape(50),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.5f))
+    ) {
+        Text(
+            text = if (excede) "⚠ $texto" else texto,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+        )
+    }
 }

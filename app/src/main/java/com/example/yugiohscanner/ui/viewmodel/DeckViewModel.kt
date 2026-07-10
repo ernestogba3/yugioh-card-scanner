@@ -27,13 +27,16 @@ data class EstadisticasMazo(
     val trampas: Int = 0,
     val faltan: Int = 0,
     val principal: Int = 0,    // cartas del Deck Principal (debe estar entre 40 y 60)
-    val extra: Int = 0         // cartas del Deck Extra (máx. 15)
+    val extra: Int = 0,        // cartas del Deck Extra (máx. 15)
+    val ilegales: Int = 0      // cartas distintas que superan su límite F&L (Prohibida/Limitada/Semi)
 ) {
     /** El Deck Principal cumple la regla 40–60. */
     val principalValido: Boolean
         get() = principal in ReglasMazo.PRINCIPAL_MIN..ReglasMazo.PRINCIPAL_MAX
     /** El Deck Extra cumple la regla (≤ 15). */
     val extraValido: Boolean get() = extra <= ReglasMazo.EXTRA_MAX
+    /** El mazo es legal para jugar: tamaños correctos y ninguna carta se pasa de la ban list. */
+    val legal: Boolean get() = principalValido && extraValido && ilegales == 0
 }
 
 class DeckViewModel(application: Application) : AndroidViewModel(application) {
@@ -156,7 +159,8 @@ class DeckViewModel(application: Application) : AndroidViewModel(application) {
             trampas = trampas,
             faltan = detalle.sumOf { it.faltan },
             principal = principal,
-            extra = extra
+            extra = extra,
+            ilegales = detalle.count { it.excedeLimite }
         )
     }
 

@@ -32,5 +32,6 @@ fun Card.aCartaYuGiOh(prints: List<CardPrint> = emptyList()): CartaYuGiOh = Cart
         .map { SetCarta(nombre = it.setName, codigo = it.setCode, precio = it.price) }
         .ifEmpty { null },
     precioCmEur = priceCm,
-    precioTcgUsd = priceTcg
+    precioTcgUsd = priceTcg,
+    banTcg = banTcg
 )
