@@ -108,8 +108,16 @@ local. Mejoras futuras: detección del rectángulo de la carta para recortar con
 - [x] Buscador dentro del mazo para añadir cartas (poseídas o no, usa la búsqueda fuzzy).
 - [x] **Cartas faltantes**: `DeckCard.quantity − copias en colección` (por `cardId`), con
       badge "Te faltan N" por carta y total en la cabecera.
+- [x] **Ban list (Forbidden & Limited del TCG)** (2026-07-10): campo `banTcg` en el catálogo
+      (de `banlist_info.ban_tcg`, catalog.db **v5**). `ReglasMazo.EstadoBanlist` (Prohibida 0 /
+      Limitada 1 / Semi 2 / Libre 3); `anadirCarta`/`cambiarCantidad` **bloquean** prohibidas y el
+      exceso de copias; badges F&L en la UI y veredicto de legalidad del mazo.
+- [x] **Sugerencias con criterio meta (heurística offline)**: se prioriza por cartas potentes
+      (Limitadas/Semi = staples que ya posees); auto-build genera mazos legales priorizando el
+      núcleo fuerte. Datos reales verificados: 117 Prohibidas / 94 Limitadas / 10 Semi.
 
-**Verificado:** compila y empaqueta (APK 37 MB). Pendiente: probarlo tú en el móvil.
+**Verificado (2026-07-10):** compila, unit tests y **prueba visual en dispositivo** (badge
+"Prohibida" + bloqueo al añadir + meta en sugerencias + chips de legalidad).
 
 ---
 
@@ -243,8 +251,9 @@ degradando con elegancia sin conexión (sin red, la app sigue con el catálogo q
 - **Hecho:** Fases 1–7 + 10 completas y el rediseño "binder/passcode" (catálogo offline en Room,
   búsqueda fuzzy, escaneo passcode+pHash, colección, deck builder con reglas, Firebase
   auth+backup, precios y sugerencias por arquetipo, tema cálido, carta holográfica, actualización
-  de catálogo por GitHub Action). Fase 8 avanzada: migración no destructiva, **tests de lógica
-  pura**, **archivos largos partidos** e **icono propio (Kuriboh)** — todo verificado.
+  de catálogo por GitHub Action). Deck builder ampliado con **ban list F&L + criterio meta**
+  (2026-07-10, verificado en dispositivo). Fase 8 avanzada: migración no destructiva, **tests de
+  lógica pura**, **archivos largos partidos** e **icono propio (Kuriboh)** — todo verificado.
 - **Siguiente:** P0 del plan de mejoras (calibrar el escáner en dispositivo: `UMBRAL_HAMMING` +
   fracciones de recorte, modo debug) y el resto de Fase 8 (splash, privacidad, `bundleRelease`).
   Ver el plan priorizado en la memoria `project_mejoras_plan`.
