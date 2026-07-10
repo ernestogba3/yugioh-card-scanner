@@ -142,10 +142,25 @@ local. Mejoras futuras: detección del rectángulo de la carta para recortar con
 
 - [x] **Migración no destructiva** en `AppDatabase` (user.db): `MIGRATION_3_4` conserva
       colección y mazos al actualizar. Esquema exportado a `app/schemas/` (Room schemaLocation).
+- [x] **Calidad — tests de lógica pura** (2026-07-10): `PHashTest` (distancia Hamming),
+      `IdentificadorCartaTest` (regex de passcode/set code, extraídos a funciones puras del
+      `companion object`), `SimilitudTest` (Levenshtein/Jaro-Winkler/puntuación) y
+      `CamaraUtilTest` (`construirCandidatos`/`limpiarNombre`), junto a los ya existentes
+      `ReglasMazoTest` y `BusquedaFuzzyTest`. Todos en verde (`testDebugUnitTest`).
+- [x] **Calidad — archivos largos partidos** (2026-07-10), sin cambio visual:
+      `MazosScreen`→ +`DeckDetailScreen.kt` +`SugerenciaArquetipoScreen.kt`;
+      `CameraScreen`→ +`data/scan/CamaraUtil.kt` (helpers puros);
+      `ScannerScreen`→ +`ui/components/PanelFiltros.kt` +`ui/components/CartaItem.kt`;
+      `DetalleCartaScreen`→ +`ui/components/DetalleComponentes.kt`.
+- [x] **Icono de la app** (2026-07-10): adaptive icon con imagen propia del usuario (carta de
+      Kuriboh) en vez del androide verde por defecto. `ic_launcher_background` a negro,
+      `ic_launcher_foreground` = la imagen centrada al 84% sobre negro (para que el marco de
+      escáner no se recorte con las máscaras), sin `<monochrome>`. Verificado en dispositivo
+      (build + install + MainActivity en foco, sin crashes).
 - [ ] **Estrategia A del catálogo (`createFromAsset`)** → primer arranque instantáneo.
       *Requiere generar una `.db` con el identityHash de Room; lo más fiable es producirla con
       un test instrumentado en un dispositivo (necesita tu móvil). Pendiente.*
-- [ ] Iconos, splash, permisos mínimos, política de privacidad (Firebase/cámara).
+- [ ] Splash, permisos mínimos, política de privacidad (Firebase/cámara).
 - [ ] `bundleRelease` firmado + ficha de Play Store.
 
 ---
@@ -223,9 +238,14 @@ degradando con elegancia sin conexión (sin red, la app sigue con el catálogo q
 
 ---
 
-## Estado actual
+## Estado actual (2026-07-10)
 
-- **Hecho:** app base (Compose, navegación, búsqueda por backend, colección con
-  `CartaGuardada`, escaneo OCR básico), backend Node+PostgreSQL con búsqueda fuzzy.
-- **Siguiente:** aprobar Fase 0 → empezar Fase 1 (catálogo offline en Room).
+- **Hecho:** Fases 1–7 + 10 completas y el rediseño "binder/passcode" (catálogo offline en Room,
+  búsqueda fuzzy, escaneo passcode+pHash, colección, deck builder con reglas, Firebase
+  auth+backup, precios y sugerencias por arquetipo, tema cálido, carta holográfica, actualización
+  de catálogo por GitHub Action). Fase 8 avanzada: migración no destructiva, **tests de lógica
+  pura**, **archivos largos partidos** e **icono propio (Kuriboh)** — todo verificado.
+- **Siguiente:** P0 del plan de mejoras (calibrar el escáner en dispositivo: `UMBRAL_HAMMING` +
+  fracciones de recorte, modo debug) y el resto de Fase 8 (splash, privacidad, `bundleRelease`).
+  Ver el plan priorizado en la memoria `project_mejoras_plan`.
 ```
