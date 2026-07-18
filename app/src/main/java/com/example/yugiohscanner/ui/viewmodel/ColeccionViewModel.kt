@@ -6,13 +6,17 @@ import androidx.lifecycle.viewModelScope
 import com.example.yugiohscanner.data.db.AppDatabase
 import com.example.yugiohscanner.data.model.CartaGuardada
 import com.example.yugiohscanner.data.model.CartaYuGiOh
+import com.example.yugiohscanner.data.model.ValorSnapshot
 import com.example.yugiohscanner.data.repository.CardRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /** Estado de la pantalla de detalle abierta desde la colección. */
 sealed class EstadoDetalle {
@@ -21,6 +25,17 @@ sealed class EstadoDetalle {
     // parcial = true cuando los datos vienen del respaldo local (sin conexión).
     data class Exito(val carta: CartaYuGiOh, val parcial: Boolean = false) : EstadoDetalle()
 }
+
+/**
+ * Valor de la colección para el widget: total actual y, si hay histórico suficiente, cuánto ha
+ * cambiado respecto a ~7 días atrás. [cambioSemana]/[porcentaje] son null si aún no hay un dato
+ * anterior con el que comparar.
+ */
+data class ResumenValor(
+    val total: Double = 0.0,
+    val cambioSemana: Double? = null,
+    val porcentaje: Double? = null
+)
 
 /** Resumen de la colección para la sección de estadísticas. */
 data class Estadisticas(
@@ -46,6 +61,19 @@ data class CajaSet(
     val imagen: String
 )
 
+/**
+ * Aviso (Toast) que se muestra tras guardar una carta desde el escáner o el detalle.
+ * Lo observa [MainScreen] para pintarlo flotando sobre cualquier pantalla.
+ */
+data class EventoToast(
+    val idLocal: Int,        // fila recién insertada (para "Deshacer")
+    val nombre: String,      // nombre a mostrar (ES si existe)
+    val subtitulo: String,   // rareza o tipo de la carta
+    val urlImagen: String,   // miniatura de la carta guardada
+    val copias: Int,         // nº de copias que tienes tras guardar
+    val esDuplicada: Boolean // true = ya tenías al menos una copia
+)
+
 /** Estado del álbum de un set (todas sus cartas, en color las que tienes y en gris las que no). */
 sealed class EstadoAlbum {
     object Inactivo : EstadoAlbum()
@@ -61,10 +89,66 @@ sealed class EstadoAlbum {
 class ColeccionViewModel(application: Application) : AndroidViewModel(application) {
 
     private val dao = AppDatabase.getInstance(application).cartaDao()
+    private val deckDao = AppDatabase.getInstance(application).deckDao()
+    private val valorDao = AppDatabase.getInstance(application).valorHistoricoDao()
     private val repo = CardRepository(application)
 
     val cartas: StateFlow<List<CartaGuardada>> = dao.obtenerTodas()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** cardIds que el usuario usa en algún mazo (para el chip "EN UN MAZO" de la colección). */
+    val cardIdsEnMazos: StateFlow<Set<Int>> = deckDao.cardIdsEnMazos()
+        .map { ids -> ids.map(Long::toInt).toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    /**
+     * Valor total de la colección en euros (precio medio de CardMarket × nº de copias). Como
+     * `cartas` tiene una fila por copia, basta sumar el precio de cada fila. Las cartas sin
+     * precio conocido en el catálogo cuentan como 0. Cada vez que se recalcula, guarda la foto
+     * del día en el histórico (una fila por fecha).
+     */
+    val valorColeccion: StateFlow<Double> = cartas
+        .map { lista -> calcularValorTotal(lista) }
+        .onEach { valor -> registrarSnapshotHoy(valor) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    /** Histórico del valor (una foto por día), de la más antigua a la más reciente. */
+    val historicoValor: StateFlow<List<ValorSnapshot>> = valorDao.historico()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Valor actual + tendencia respecto a ~7 días atrás (para el widget). */
+    val resumenValor: StateFlow<ResumenValor> = combine(valorColeccion, historicoValor) { total, hist ->
+        calcularResumen(total, hist)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ResumenValor())
+
+    private suspend fun calcularValorTotal(lista: List<CartaGuardada>): Double {
+        if (lista.isEmpty()) return 0.0
+        val precios = repo.preciosPorId(lista.map { it.cardId })
+        return lista.sumOf { precios[it.cardId] ?: 0.0 }
+    }
+
+    private suspend fun registrarSnapshotHoy(valor: Double) {
+        valorDao.guardar(
+            ValorSnapshot(fecha = LocalDate.now().toString(), valorEur = valor, timestamp = System.currentTimeMillis())
+        )
+    }
+
+    /**
+     * Calcula la tendencia comparando el valor de hoy con el de referencia: la foto más reciente
+     * de hace 7 días o más; si no la hay, la más antigua de un día anterior. Si solo existe la
+     * foto de hoy, no hay tendencia (null).
+     */
+    private fun calcularResumen(total: Double, hist: List<ValorSnapshot>): ResumenValor {
+        if (hist.isEmpty()) return ResumenValor(total)
+        val hoy = LocalDate.now()
+        val hace7 = hoy.minusDays(7)
+        val referencia = hist.filter { LocalDate.parse(it.fecha) <= hace7 }.maxByOrNull { it.fecha }
+            ?: hist.firstOrNull { LocalDate.parse(it.fecha) < hoy }
+            ?: return ResumenValor(total)
+        val cambio = total - referencia.valorEur
+        val pct = if (referencia.valorEur != 0.0) cambio / referencia.valorEur * 100 else null
+        return ResumenValor(total, cambio, pct)
+    }
 
     /** cardIds marcados como favoritos (al menos una copia favorita). */
     val favoritos: StateFlow<Set<Int>> = dao.obtenerTodas()
@@ -92,6 +176,10 @@ class ColeccionViewModel(application: Application) : AndroidViewModel(applicatio
     // Álbum del set abierto (todas sus cartas, marcando cuáles posee el usuario).
     private val _album = MutableStateFlow<EstadoAlbum>(EstadoAlbum.Inactivo)
     val album: StateFlow<EstadoAlbum> = _album
+
+    // Aviso pendiente de mostrar tras guardar una carta (null = no hay aviso visible).
+    private val _eventoToast = MutableStateFlow<EventoToast?>(null)
+    val eventoToast: StateFlow<EventoToast?> = _eventoToast
 
     init {
         cargarTotalesDeSets()
@@ -187,7 +275,31 @@ class ColeccionViewModel(application: Application) : AndroidViewModel(applicatio
         urlArte: String? = null
     ) {
         viewModelScope.launch {
-            dao.insertar(CartaGuardada.desde(carta, condicion, rareza, chosenArtId, urlArte))
+            // Copias previas (consulta directa: no depende de que el Flow esté suscrito).
+            val copiasPrevias = dao.contarPorCardId(carta.id)
+            val guardada = CartaGuardada.desde(carta, condicion, rareza, chosenArtId, urlArte)
+            val idLocal = dao.insertar(guardada)
+            _eventoToast.value = EventoToast(
+                idLocal = idLocal.toInt(),
+                nombre = carta.nombreEs?.takeIf { it.isNotBlank() } ?: carta.name,
+                subtitulo = rareza?.takeIf { it.isNotBlank() } ?: carta.type,
+                urlImagen = guardada.urlImagen,
+                copias = copiasPrevias + 1,
+                esDuplicada = copiasPrevias > 0
+            )
+        }
+    }
+
+    /** Oculta el aviso (autocierre a los pocos segundos o al deslizarlo). */
+    fun descartarToast() {
+        _eventoToast.value = null
+    }
+
+    /** Deshace el último guardado: borra la copia recién insertada y oculta el aviso. */
+    fun deshacerGuardado(idLocal: Int) {
+        viewModelScope.launch {
+            dao.eliminarPorIdLocal(idLocal)
+            _eventoToast.value = null
         }
     }
 

@@ -37,6 +37,14 @@ interface CartaDao {
     @Delete
     suspend fun eliminar(carta: CartaGuardada)
 
+    // Cuántas copias tiene el usuario de una carta concreta (para detectar duplicados al guardar).
+    @Query("SELECT COUNT(*) FROM cartas_guardadas WHERE cardId = :cardId")
+    suspend fun contarPorCardId(cardId: Int): Int
+
+    // Borra una copia por su idLocal (deshacer el último guardado desde el aviso).
+    @Query("DELETE FROM cartas_guardadas WHERE idLocal = :idLocal")
+    suspend fun eliminarPorIdLocal(idLocal: Int)
+
     // Marca/desmarca como favorita TODAS las copias de la misma carta (mismo cardId).
     @Query("UPDATE cartas_guardadas SET favorito = :favorito WHERE cardId = :cardId")
     suspend fun marcarFavorito(cardId: Int, favorito: Boolean)

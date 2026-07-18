@@ -50,15 +50,20 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.yugiohscanner.data.model.CartaGuardada
+import com.example.yugiohscanner.ui.theme.ColorMagico
+import com.example.yugiohscanner.ui.theme.Granate
 import com.example.yugiohscanner.ui.theme.OroClaro
 import com.example.yugiohscanner.ui.theme.OroYuGiOh
+import com.example.yugiohscanner.ui.theme.RojoCalido
 import com.example.yugiohscanner.ui.theme.colorPorTipo
 import com.example.yugiohscanner.ui.viewmodel.ColeccionViewModel
 import com.example.yugiohscanner.ui.viewmodel.EstadoAlbum
 import com.example.yugiohscanner.ui.viewmodel.EstadoDetalle
+import com.example.yugiohscanner.ui.viewmodel.ResumenValor
+import java.util.Locale
 
 /** Sub-vistas dentro de la pestaña Colección. */
-private enum class VistaColeccion { Principal, Estadisticas, Sets }
+private enum class VistaColeccion { Principal, Estadisticas, Sets, Historico }
 
 @Composable
 fun ColeccionScreen(viewModel: ColeccionViewModel = viewModel()) {
@@ -68,6 +73,9 @@ fun ColeccionScreen(viewModel: ColeccionViewModel = viewModel()) {
     val album by viewModel.album.collectAsState()
     val favoritos by viewModel.favoritos.collectAsState()
     val cajas by viewModel.cajas.collectAsState()
+    val cardIdsEnMazos by viewModel.cardIdsEnMazos.collectAsState()
+    val resumenValor by viewModel.resumenValor.collectAsState()
+    val historicoValor by viewModel.historicoValor.collectAsState()
 
     var vista by remember { mutableStateOf(VistaColeccion.Principal) }
 
@@ -118,6 +126,10 @@ fun ColeccionScreen(viewModel: ColeccionViewModel = viewModel()) {
             )
             return
         }
+        VistaColeccion.Historico -> {
+            HistoricoValorScreen(snapshots = historicoValor, onCerrar = { vista = VistaColeccion.Principal })
+            return
+        }
         VistaColeccion.Principal -> Unit
     }
 
@@ -141,6 +153,12 @@ fun ColeccionScreen(viewModel: ColeccionViewModel = viewModel()) {
         if (cartas.isEmpty()) {
             ColeccionVacia()
         } else {
+            ValorColeccionWidget(
+                resumen = resumenValor,
+                onVerHistorico = { vista = VistaColeccion.Historico }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Accesos a las pantallas nuevas.
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 BotonAcceso("📊", "Estadísticas", Modifier.weight(1f)) { vista = VistaColeccion.Estadisticas }
@@ -162,6 +180,7 @@ fun ColeccionScreen(viewModel: ColeccionViewModel = viewModel()) {
                         condicion = valorRepresentativo(copias.mapNotNull { it.condicion }),
                         rareza = valorRepresentativo(copias.mapNotNull { it.rareza }),
                         favorito = copias.first().favorito,
+                        enMazo = copias.first().cardId in cardIdsEnMazos,
                         onClick = { viewModel.abrirDetalle(copias.first()) },
                         onEliminar = { viewModel.eliminarCarta(copias.first()) }
                     )
@@ -179,6 +198,78 @@ private fun valorRepresentativo(valores: List<String>): String? {
         distintos.size == 1 -> distintos.first()
         else -> "Varias"
     }
+}
+
+/** Formatea un importe en euros al estilo español: €2.847,50 (miles con punto, decimales con coma). */
+internal fun formatoEuros(valor: Double): String =
+    "€" + String.format(Locale("es", "ES"), "%,.2f", valor)
+
+/**
+ * Widget del valor total de la colección (precio medio de CardMarket × copias) con la tendencia
+ * respecto a ~7 días atrás. Al pulsarlo abre la gráfica de evolución.
+ */
+@Composable
+private fun ValorColeccionWidget(resumen: ResumenValor, onVerHistorico: () -> Unit) {
+    Surface(
+        onClick = onVerHistorico,
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.5.dp, Granate),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "💰 VALOR DE TU COLECCIÓN",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = formatoEuros(resumen.total),
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = OroClaro
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            TendenciaSemana(resumen)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Toca para ver el histórico · precio medio de CardMarket",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/** Línea de tendencia "esta semana": verde si sube, rojo si baja, neutra si no hay dato aún. */
+@Composable
+private fun TendenciaSemana(resumen: ResumenValor) {
+    val cambio = resumen.cambioSemana
+    if (cambio == null) {
+        Text(
+            text = "📊 La tendencia se calculará con los próximos días",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        return
+    }
+    val sube = cambio >= 0
+    val color = if (sube) ColorMagico else RojoCalido
+    val flecha = if (sube) "↑" else "↓"
+    val pct = resumen.porcentaje?.let { " · ${if (sube) "+" else ""}${String.format(Locale("es", "ES"), "%.1f", it)}%" } ?: ""
+    Text(
+        text = "$flecha ${formatoEuros(kotlin.math.abs(cambio))} esta semana$pct",
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        color = color
+    )
 }
 
 @Composable
@@ -286,6 +377,7 @@ private fun CartaGridItem(
     condicion: String?,
     rareza: String?,
     favorito: Boolean,
+    enMazo: Boolean,
     onClick: () -> Unit,
     onEliminar: () -> Unit
 ) {
@@ -327,6 +419,9 @@ private fun CartaGridItem(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (enMazo) {
+                    BadgeEnMazo()
+                }
                 if (rareza != null) {
                     BadgeMini(rareza, destacado = true)
                 }
@@ -375,6 +470,25 @@ private fun CartaGridItem(
                 }
             }
         }
+    }
+}
+
+/** Chip verde: la carta se usa en al menos uno de tus mazos. */
+@Composable
+private fun BadgeEnMazo() {
+    Surface(
+        color = ColorMagico.copy(alpha = 0.9f),
+        contentColor = Color.Black,
+        shape = RoundedCornerShape(4.dp),
+        modifier = Modifier.padding(top = 3.dp)
+    ) {
+        Text(
+            text = "EN MAZO",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+        )
     }
 }
 

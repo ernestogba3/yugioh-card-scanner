@@ -9,6 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.yugiohscanner.data.model.CartaGuardada
 import com.example.yugiohscanner.data.model.Deck
 import com.example.yugiohscanner.data.model.DeckCard
+import com.example.yugiohscanner.data.model.ValorSnapshot
 
 /**
  * Migración 3 → 4: añade las tablas de mazos SIN borrar la colección del usuario.
@@ -73,18 +74,33 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
 }
 
 /**
+ * Migración 8 → 9: crea la tabla `valor_historico` (foto del valor de la colección por día),
+ * SIN tocar la colección ni los mazos. El SQL es exactamente el que Room genera para
+ * [ValorSnapshot] (ver app/schemas/.../9.json), por lo que el identityHash cuadra.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `valor_historico` (`fecha` TEXT NOT NULL, " +
+                "`valorEur` REAL NOT NULL, `timestamp` INTEGER NOT NULL, PRIMARY KEY(`fecha`))"
+        )
+    }
+}
+
+/**
  * Base de datos del USUARIO (colección + mazos). Es la "user.db" del diseño: datos que el
  * usuario crea y que, en la Fase 6, se sincronizarán opcionalmente con Firebase.
  * Separada del catálogo (`CatalogDatabase`), que es de solo lectura.
  */
 @Database(
-    entities = [CartaGuardada::class, Deck::class, DeckCard::class],
-    version = 8,
+    entities = [CartaGuardada::class, Deck::class, DeckCard::class, ValorSnapshot::class],
+    version = 9,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun cartaDao(): CartaDao
     abstract fun deckDao(): DeckDao
+    abstract fun valorHistoricoDao(): ValorHistoricoDao
 
     companion object {
         @Volatile
@@ -100,7 +116,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // Migración real para 3→4 (conserva colección y mazos). El borrado
                     // destructivo queda solo como red de seguridad para saltos de versión muy
                     // antiguos (1/2 → 4) que no tienen migración definida.
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .fallbackToDestructiveMigration(true)
                     .build().also { INSTANCE = it }
             }

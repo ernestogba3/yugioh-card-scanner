@@ -111,6 +111,19 @@ class CardRepository(context: Context) {
             .flatMap { dao.obtenerArquetipos(it) }
             .associate { it.id.toInt() to it.archetype }
 
+    /**
+     * Mapa cardId -> precio CardMarket en euros (para el valor total de la colección). Solo
+     * incluye las cartas cuyo `priceCm` del catálogo es un número válido; las que no tienen
+     * precio conocido se omiten (cuentan como 0 al sumar). En lotes de 900 (límite del IN).
+     */
+    suspend fun preciosPorId(ids: List<Int>): Map<Int, Double> =
+        ids.distinct()
+            .map { it.toLong() }
+            .chunked(900)
+            .flatMap { dao.obtenerCartasPorIds(it) }
+            .mapNotNull { card -> card.priceCm?.toDoubleOrNull()?.let { card.id.toInt() to it } }
+            .toMap()
+
     /** Ficha completa de una carta por su id (pantalla de detalle). */
     suspend fun obtenerCartaPorId(id: Int): CartaYuGiOh? =
         dao.obtenerCartaPorId(id.toLong())?.aCartaConPrints()

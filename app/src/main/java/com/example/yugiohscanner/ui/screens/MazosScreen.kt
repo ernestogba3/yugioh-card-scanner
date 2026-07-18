@@ -1,6 +1,9 @@
 package com.example.yugiohscanner.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,15 +43,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.yugiohscanner.data.model.Deck
 import com.example.yugiohscanner.data.repository.SugerenciaArquetipo
+import com.example.yugiohscanner.ui.theme.ColorMagico
 import com.example.yugiohscanner.ui.theme.OroClaro
 import com.example.yugiohscanner.ui.theme.OroYuGiOh
+import com.example.yugiohscanner.ui.theme.RojoCalido
 import com.example.yugiohscanner.ui.viewmodel.DeckViewModel
 
 @Composable
@@ -119,19 +128,29 @@ fun MazosScreen(viewModel: DeckViewModel = viewModel()) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (sugerencias.isNotEmpty()) {
-                item { SeccionTitulo("Sugerencias para ti") }
-                item {
-                    Text(
-                        "Arquetipos que ya coleccionas. Toca uno para crear su mazo.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                val abrir: (SugerenciaArquetipo) -> Unit = { sug ->
+                    arquetipoSel = sug
+                    viewModel.abrirArquetipo(sug.arquetipo)
                 }
-                items(sugerencias, key = { "s-${it.arquetipo}" }) { sug ->
-                    SugerenciaItem(sugerencia = sug, onAbrir = {
-                        arquetipoSel = sug
-                        viewModel.abrirArquetipo(sug.arquetipo)
-                    })
+                item { SeccionTitulo("Sugerencias para ti") }
+                // Mejor opción: la primera (ya viene ordenada por puntuación meta).
+                item { HeroSugerencia(sugerencia = sugerencias.first(), onAbrir = abrir) }
+                // Resto: carrusel horizontal para comparar de un vistazo.
+                if (sugerencias.size > 1) {
+                    item {
+                        Text(
+                            "Comparar otros arquetipos",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    item {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            items(sugerencias.drop(1), key = { "s-${it.arquetipo}" }) { sug ->
+                                AltSugerencia(sugerencia = sug, onAbrir = abrir)
+                            }
+                        }
+                    }
                 }
                 item { Spacer(modifier = Modifier.height(4.dp)) }
             }
@@ -238,44 +257,88 @@ private fun DialogoNuevoMazo(onConfirmar: (String, String?) -> Unit, onCancelar:
     )
 }
 
-/** Tarjeta de una sugerencia: arquetipo, cuántas tienes de cuántas y barra de progreso. */
+/** Color de la barra de cobertura según el % (rojo bajo → oro medio → verde alto). */
+private fun colorCobertura(porcentaje: Int): Color = when {
+    porcentaje >= 66 -> ColorMagico
+    porcentaje >= 33 -> OroYuGiOh
+    else -> RojoCalido
+}
+
+/**
+ * Tarjeta HÉROE de la mejor sugerencia: fondo dorado, barra de cobertura que se llena con
+ * animación, cuántas cartas te faltan y acceso para crear/ver el mazo.
+ */
 @Composable
-private fun SugerenciaItem(sugerencia: SugerenciaArquetipo, onAbrir: () -> Unit) {
+private fun HeroSugerencia(sugerencia: SugerenciaArquetipo, onAbrir: (SugerenciaArquetipo) -> Unit) {
+    val faltan = (sugerencia.totalCatalogo - sugerencia.poseidas).coerceAtLeast(0)
+    // La barra se anima de 0 al % real al aparecer (o al cambiar de arquetipo).
+    val progreso = remember(sugerencia.arquetipo) { Animatable(0f) }
+    LaunchedEffect(sugerencia.arquetipo) {
+        progreso.animateTo(sugerencia.porcentaje / 100f, animationSpec = tween(1000))
+    }
+
     Card(
-        onClick = onAbrir,
+        onClick = { onAbrir(sugerencia) },
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, OroYuGiOh.copy(alpha = 0.4f))
+        border = BorderStroke(2.dp, OroYuGiOh)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        listOf(OroYuGiOh.copy(alpha = 0.22f), Color.Transparent)
+                    )
+                )
+                .padding(18.dp)
+        ) {
+            Text(
+                "🏆 MEJOR OPCIÓN",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = OroClaro
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                sugerencia.arquetipo,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    sugerencia.arquetipo,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    "Cobertura",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    "${sugerencia.poseidas}/${sugerencia.totalCatalogo}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = OroClaro
+                    "${sugerencia.porcentaje}%",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colorCobertura(sugerencia.porcentaje)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             LinearProgressIndicator(
-                progress = { sugerencia.porcentaje / 100f },
-                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(50)),
-                color = OroYuGiOh,
+                progress = { progreso.value },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(50)),
+                color = colorCobertura(sugerencia.porcentaje),
                 trackColor = MaterialTheme.colorScheme.surface
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
-                "Tienes el ${sugerencia.porcentaje}% del arquetipo",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                if (faltan > 0) "Tienes ${sugerencia.poseidas} de ${sugerencia.totalCatalogo} · te faltan $faltan"
+                else "¡Tienes las ${sugerencia.totalCatalogo} cartas del arquetipo!",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
             )
             if (sugerencia.potencia > 0) {
                 Text(
@@ -284,6 +347,60 @@ private fun SugerenciaItem(sugerencia: SugerenciaArquetipo, onAbrir: () -> Unit)
                     color = OroClaro
                 )
             }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(OroYuGiOh)
+                    .padding(vertical = 10.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    "📋 Ver cartas y crear mazo",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+        }
+    }
+}
+
+/** Tarjeta compacta del carrusel: arquetipo, % grande y cuántas tienes. */
+@Composable
+private fun AltSugerencia(sugerencia: SugerenciaArquetipo, onAbrir: (SugerenciaArquetipo) -> Unit) {
+    Card(
+        onClick = { onAbrir(sugerencia) },
+        modifier = Modifier.width(132.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(1.dp, OroYuGiOh.copy(alpha = 0.4f))
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                sugerencia.arquetipo,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "${sugerencia.porcentaje}%",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = colorCobertura(sugerencia.porcentaje)
+            )
+            Text(
+                "${sugerencia.poseidas}/${sugerencia.totalCatalogo}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

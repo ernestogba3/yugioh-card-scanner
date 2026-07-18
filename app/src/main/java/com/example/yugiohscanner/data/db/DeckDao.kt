@@ -54,4 +54,9 @@ interface DeckDao {
 
     @Query("SELECT COALESCE(SUM(quantity), 0) FROM deck_cards WHERE deckId = :deckId")
     suspend fun totalCartas(deckId: Long): Int
+
+    // cardIds que aparecen en ALGÚN mazo. Sirve para marcar en la colección las cartas que ya
+    // estás usando en un mazo (chip "EN UN MAZO"). Es Flow para refrescarse al editar los mazos.
+    @Query("SELECT DISTINCT cardId FROM deck_cards")
+    fun cardIdsEnMazos(): Flow<List<Long>>
 }
