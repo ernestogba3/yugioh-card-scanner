@@ -46,7 +46,27 @@ guarda en un álbum digital. Todo el catálogo viaja dentro de la app, así que 
 
 ## 📷 Capturas
 
-> _Próximamente._ <!-- Añade aquí imágenes: arrastra capturas al repo y enlázalas, p. ej. ![Escáner](docs/capturas/escaner.png) -->
+> 🚧 _Capturas pendientes._ Se añadirán más adelante. Guía de nombres en [`docs/capturas/`](docs/capturas/).
+
+<!--
+  GALERÍA LISTA PARA ACTIVAR:
+  1) Coloca las imágenes en docs/capturas/ con estos nombres.
+  2) Quita esta línea de comentario de apertura y la de cierre del final del bloque.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/capturas/bienvenida.png" width="230"><br><sub>Bienvenida</sub></td>
+    <td align="center"><img src="docs/capturas/escaner.png" width="230"><br><sub>Escáner</sub></td>
+    <td align="center"><img src="docs/capturas/coleccion.png" width="230"><br><sub>Colección</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/capturas/detalle.png" width="230"><br><sub>Detalle de carta</sub></td>
+    <td align="center"><img src="docs/capturas/mazos.png" width="230"><br><sub>Sugerencias de mazo</sub></td>
+    <td align="center"><img src="docs/capturas/valor-historico.png" width="230"><br><sub>Valor de la colección</sub></td>
+  </tr>
+</table>
+
+-->
 
 ---
 
