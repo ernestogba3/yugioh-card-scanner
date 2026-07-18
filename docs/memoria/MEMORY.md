@@ -1,0 +1,13 @@
+- [User Profile](user_profile.md) — Beginner Android dev, needs IDE steps explained after every code change
+- [YuGiOh Scanner Project](project_yugioh_scanner.md) — Kotlin 2.1.0, AGP 9.2.1, KSP, Room, CameraX, ML Kit, Gson, Coil, Firebase; offline-first (Retrofit solo build-time)
+- [AGP 9.x + Kotlin feedback](feedback_agp9_kotlin.md) — No declarar kotlin-android explícito; eliminar kotlinOptions; AGP 9.x lo maneja internamente
+- [Build JDK](project_build_jdk.md) — Para compilar por terminal: set JAVA_HOME a "C:\Program Files\Android\Android Studio\jbr"
+- [Backend Node+PG](project_backend.md) — backend/ con Node.js+PostgreSQL+pg_trgm; importa de YGOPRODeck; JSON imita la API original
+- [Rediseño offline-first](project_redesign_offline.md) — 2026-06-14: dos BDs Room (catalog.db+user.db), catálogo empaquetado, Firebase solo usuario; docs/ARQUITECTURA.md y docs/ROADMAP.md
+- [Skill yugioh-builder](skill_yugioh_builder.md) — Skill instalado y adaptado al stack real (AGP 9.x, offline-first); no correr setup_project.py sobre el proyecto actual
+- [Rediseño UI](project_rediseno_ui.md) — Spec visual aplicado: Tema + Colección + Detalle + Cámara/Scanner hechos; solo quedan diferidos (condición/favorito/bottom nav)
+- [Rediseño passcode 2026-06-24](project_rediseno_passcode.md) — Spec nuevo (passcode+pHash, binder cálido) adaptado a lo existente + offline. Fases 0–5 + 10 COMPLETAS y compilando; pHash generado (14.586). Detalle "carta viva" = holográfico por rareza. Pendiente solo manual: probar escáner en dispositivo y ajustar UMBRAL_HAMMING/recortes
+- [Revisión Compose 2026-06-25](feedback_compose_revision.md) — En drag handlers: una corrutina por evento con snapTo en orden (no una por eje); repo usa LF vía .gitattributes
+- [Plan de mejoras](project_mejoras_plan.md) — 2026-07-10: P1 (tests lógica pura + partir archivos largos) e ICONO propio (Kuriboh) HECHOS y verificados. Pendientes: P0 calibrar escáner en dispositivo (UMBRAL_HAMMING/recortes) y P2/P3 pulido
+- [Plan UI/UX 6 mockups](project_uiux_mockups.md) — 2026-07-18: plan externo reencuadrado al stack real (era Hilt/API). Toast post-escaneo HECHO y compilando; siguientes chips y valor total; 1.3/1.4 ya existían
+- [Índice de docs](project_docs_index.md) — 2026-07-18: toda la doc en docs/ con INDICE.md como puerta única; docs/memoria/ es copia de las memorias (re-sincronizar al cambiarlas)

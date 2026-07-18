@@ -57,5 +57,10 @@ App (Ajustes → "Buscar actualizaciones")
   de ellos.
 - Generar el catálogo en local sigue funcionando igual: `cd backend && npm run export-catalog`
   (ahora también escribe `manifest.json`). Puedes fijar la URL con la variable `CATALOG_URL`.
+- ⚠️ **Al regenerar en local**, el `manifest.json` generado lleva una URL con el placeholder
+  `OWNER/REPO` (en local no existe la variable `GITHUB_REPOSITORY` que sí tiene el Action).
+  **Descártalo antes de commitear** con `git checkout app/src/main/assets/database/manifest.json`
+  para no pisar el manifest bueno que publica el Action. En runtime la app usa la URL remota del
+  Action, no el `manifest.json` empaquetado, así que descartarlo no afecta a nada.
 - Versionado: la "versión" es la fecha ISO de generación. La app guarda la última aplicada en
   `SharedPreferences("catalogo")`; mientras sea distinta de la remota, ofrece actualizar.
