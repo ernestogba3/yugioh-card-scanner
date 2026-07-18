@@ -11,6 +11,7 @@ guarda en un álbum digital. Todo el catálogo viaja dentro de la app, así que 
 ![Android](https://img.shields.io/badge/Android-min%20SDK%2026-3DDC84?logo=android&logoColor=white)
 ![Offline-first](https://img.shields.io/badge/Arquitectura-offline--first-C9A24B)
 ![Room](https://img.shields.io/badge/Room-2.7-8E44AD)
+![License](https://img.shields.io/badge/Licencia-MIT-green)
 
 ---
 
@@ -140,6 +141,15 @@ Todo está centralizado en la carpeta [`docs/`](docs/) — empieza por el índic
 - Datos e imágenes de las cartas: **[YGOPRODeck API](https://ygoprodeck.com/api-guide/)**.
 - *Yu-Gi-Oh!* es una marca registrada de **Konami**. Este es un proyecto **no oficial, sin ánimo de lucro
   y con fines educativos** (parte de un curso de programación 2026), sin ninguna afiliación con Konami.
+
+---
+
+## 📄 Licencia
+
+El **código** de este proyecto se publica bajo la licencia **[MIT](LICENSE)**.
+
+> La licencia MIT cubre únicamente el código fuente. Los **datos e imágenes de las cartas** pertenecen a
+> sus respectivos titulares (YGOPRODeck / Konami) y quedan fuera de esta licencia.
 
 ---
 
