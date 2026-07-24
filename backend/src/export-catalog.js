@@ -73,6 +73,26 @@ function precioValido(v) {
     return Number.isFinite(n) && n > 0 ? String(v) : null;
 }
 
+/**
+ * Decodifica las entidades HTML que YGOPRODeck devuelve en nombres ("5D&apos;s" -> "5D's",
+ * "Att&amp;ck" -> "Att&ck"). Así el catálogo se guarda ya limpio. `&amp;` se resuelve al final.
+ */
+function decodeHtml(texto) {
+    if (texto == null) return texto;
+    return String(texto)
+        .replace(/&apos;/g, "'")
+        .replace(/&#39;/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&#(x?[0-9a-fA-F]+);/g, (_, c) => {
+            const n = c[0] === 'x' || c[0] === 'X' ? parseInt(c.slice(1), 16) : parseInt(c, 10);
+            return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+        })
+        .replace(/&amp;/g, '&');
+}
+
 async function main() {
     const inicio = Date.now();
     const { esPorKid, esPorEn } = await cargarTraducciones();
@@ -90,7 +110,7 @@ async function main() {
 
     // --- Construir el catálogo (campos cortos para reducir el tamaño del JSON) ---
     const sets = setsRaw.map((s) => ({
-        setName: s.set_name,
+        setName: decodeHtml(s.set_name),
         setCode: s.set_code ?? null,
         numOfCards: Number(s.num_of_cards) || 0,
     }));
@@ -104,7 +124,7 @@ async function main() {
             totalPrints++;
             return {
                 code: s.set_code ?? '',
-                set: s.set_name,
+                set: decodeHtml(s.set_name),
                 rarity: s.set_rarity ?? null,
                 price: precioValido(s.set_price), // TCGPlayer USD de esa impresión concreta
             };
@@ -120,8 +140,8 @@ async function main() {
         }));
         return {
             id: c.id,
-            nameEn: c.name,
-            nameEs,
+            nameEn: decodeHtml(c.name),
+            nameEs: decodeHtml(nameEs),
             desc: c.desc ?? '',
             type: c.type ?? '',
             frameType: c.frameType ?? null,

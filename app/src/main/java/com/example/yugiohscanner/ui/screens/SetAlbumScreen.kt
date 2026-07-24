@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.yugiohscanner.data.search.TextoUtil
 import com.example.yugiohscanner.ui.theme.Granate
 import com.example.yugiohscanner.ui.theme.OroClaro
 import com.example.yugiohscanner.ui.theme.OroYuGiOh
@@ -88,7 +89,8 @@ fun SetAlbumScreen(
             }
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = (estado as? EstadoAlbum.Exito)?.setName ?: "Álbum del set",
+                text = (estado as? EstadoAlbum.Exito)?.setName?.let(TextoUtil::decodificarHtml)
+                    ?: "Álbum del set",
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

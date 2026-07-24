@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.yugiohscanner.data.search.TextoUtil
 import com.example.yugiohscanner.ui.theme.OroClaro
 import com.example.yugiohscanner.ui.theme.OroYuGiOh
 import com.example.yugiohscanner.ui.viewmodel.CajaSet
@@ -106,7 +107,7 @@ private fun CajaItem(caja: CajaSet, onClick: () -> Unit) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    caja.setName,
+                    TextoUtil.decodificarHtml(caja.setName),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,

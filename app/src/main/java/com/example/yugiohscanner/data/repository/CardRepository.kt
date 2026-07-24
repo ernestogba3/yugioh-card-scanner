@@ -228,7 +228,13 @@ class CardRepository(context: Context) {
             for (par in pares) {
                 if (par.setName.isBlank() || !vistos.add(par.setName)) continue
                 val n = nombrePorId[par.cardId] ?: continue
-                resultado.add(SetCartaCoincidencia(par.setName, n.origEs, n.origEn))
+                resultado.add(
+                    SetCartaCoincidencia(
+                        setName = par.setName,  // crudo: es clave de búsqueda del set
+                        nameEs = n.origEs?.let(TextoUtil::decodificarHtml),
+                        nameEn = TextoUtil.decodificarHtml(n.origEn)
+                    )
+                )
             }
             resultado.sortedBy { it.setName }
         }

@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.yugiohscanner.data.search.TextoUtil
 import com.example.yugiohscanner.ui.theme.OroClaro
 import com.example.yugiohscanner.ui.viewmodel.EstadoAlbum
 import com.example.yugiohscanner.ui.viewmodel.SetBrowserViewModel
@@ -149,7 +150,7 @@ private fun SetItem(set: SetCatalogo, onClick: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    set.setName,
+                    TextoUtil.decodificarHtml(set.setName),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,

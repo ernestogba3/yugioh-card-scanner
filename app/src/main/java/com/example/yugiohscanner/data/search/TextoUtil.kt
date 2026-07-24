@@ -23,4 +23,33 @@ object TextoUtil {
             .replace(ESPACIOS, " ")
             .trim()
     }
+
+    private val ENTIDAD_NUMERICA = Regex("&#(x?[0-9a-fA-F]+);")
+
+    /**
+     * Decodifica las entidades HTML más comunes que llegan en los nombres del catálogo
+     * (YGOPRODeck los devuelve escapados: "5D&apos;s" -> "5D's", "Att&amp;ck" -> "Att&ck").
+     * Cubre las entidades con nombre habituales y las numéricas (decimales y hexadecimales).
+     * `&amp;` se resuelve al final para no re-decodificar una doble codificación.
+     */
+    fun decodificarHtml(texto: String): String {
+        if (texto.indexOf('&') < 0) return texto  // atajo: sin '&' no hay nada que decodificar
+        var r = texto
+            .replace("&apos;", "'")
+            .replace("&#39;", "'")
+            .replace("&quot;", "\"")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&nbsp;", " ")
+        r = ENTIDAD_NUMERICA.replace(r) { m ->
+            val cod = m.groupValues[1]
+            val n = if (cod.startsWith("x") || cod.startsWith("X")) {
+                cod.substring(1).toIntOrNull(16)
+            } else {
+                cod.toIntOrNull()
+            }
+            n?.toChar()?.toString() ?: m.value
+        }
+        return r.replace("&amp;", "&")
+    }
 }

@@ -8,6 +8,7 @@ import com.example.yugiohscanner.data.model.CartaGuardada
 import com.example.yugiohscanner.data.model.CartaYuGiOh
 import com.example.yugiohscanner.data.model.ValorSnapshot
 import com.example.yugiohscanner.data.repository.CardRepository
+import com.example.yugiohscanner.data.search.TextoUtil
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -232,9 +233,10 @@ class ColeccionViewModel(application: Application) : AndroidViewModel(applicatio
             try {
                 val poseidos = cartas.value.map { it.cardId }.toSet()
                 val cartasSet = repo.obtenerCartasDeSet(setName).map { card ->
+                    val nombre = card.nameEs?.takeIf { it.isNotBlank() } ?: card.nameEn
                     CartaAlbum(
                         cardId = card.id.toInt(),
-                        nombre = card.nameEs?.takeIf { it.isNotBlank() } ?: card.nameEn,
+                        nombre = TextoUtil.decodificarHtml(nombre),
                         urlImagen = card.imageUrlSmall ?: card.imageUrl,
                         poseida = card.id.toInt() in poseidos
                     )

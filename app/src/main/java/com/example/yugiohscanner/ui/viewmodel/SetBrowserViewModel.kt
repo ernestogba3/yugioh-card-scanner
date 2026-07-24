@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.yugiohscanner.data.db.AppDatabase
 import com.example.yugiohscanner.data.repository.CardRepository
+import com.example.yugiohscanner.data.search.TextoUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -138,9 +139,10 @@ class SetBrowserViewModel(application: Application) : AndroidViewModel(applicati
             try {
                 val poseidos = cartaDao.obtenerCardIds().toSet()
                 val cartasSet = repo.obtenerCartasDeSet(setName).map { card ->
+                    val nombre = card.nameEs?.takeIf { it.isNotBlank() } ?: card.nameEn
                     CartaAlbum(
                         cardId = card.id.toInt(),
-                        nombre = card.nameEs?.takeIf { it.isNotBlank() } ?: card.nameEn,
+                        nombre = TextoUtil.decodificarHtml(nombre),
                         urlImagen = card.imageUrlSmall ?: card.imageUrl,
                         poseida = card.id.toInt() in poseidos
                     )

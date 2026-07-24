@@ -3,6 +3,7 @@ package com.example.yugiohscanner.data.repository
 import com.example.yugiohscanner.data.catalog.Card
 import com.example.yugiohscanner.data.catalog.CardPrint
 import com.example.yugiohscanner.data.model.CartaGuardada
+import com.example.yugiohscanner.data.search.TextoUtil
 
 /**
  * Lógica PURA (sin Room ni Android) para convertir una carta del catálogo en una [CartaGuardada]
@@ -21,8 +22,8 @@ object SetGuardado {
         val print = prints.firstOrNull { it.setName == setName }
         return CartaGuardada(
             cardId = card.id.toInt(),
-            nombre = card.nameEn,
-            nombreEs = card.nameEs,
+            nombre = TextoUtil.decodificarHtml(card.nameEn),
+            nombreEs = card.nameEs?.let(TextoUtil::decodificarHtml),
             tipo = card.type,
             descripcion = card.description,
             ataque = card.atk,
