@@ -58,27 +58,23 @@ La pestaña **«Añadir»** aterriza en una pantalla de entrada donde eliges el 
 
 ## 📷 Capturas
 
-> 🚧 _Capturas pendientes._ Se añadirán más adelante. Guía de nombres en [`docs/capturas/`](docs/capturas/).
-
-<!--
-  GALERÍA LISTA PARA ACTIVAR:
-  1) Coloca las imágenes en docs/capturas/ con estos nombres.
-  2) Quita esta línea de comentario de apertura y la de cierre del final del bloque.
-
 <table>
   <tr>
-    <td align="center"><img src="docs/capturas/bienvenida.png" width="230"><br><sub>Bienvenida</sub></td>
-    <td align="center"><img src="docs/capturas/escaner.png" width="230"><br><sub>Escáner</sub></td>
-    <td align="center"><img src="docs/capturas/coleccion.png" width="230"><br><sub>Colección</sub></td>
+    <td align="center"><img src="docs/capturas/inicio.png" width="230"><br><sub>Añadir cartas (inicio)</sub></td>
+    <td align="center"><img src="docs/capturas/escaner.png" width="230"><br><sub>Escáner con la cámara</sub></td>
+    <td align="center"><img src="docs/capturas/busqueda-manual.png" width="230"><br><sub>Búsqueda manual</sub></td>
   </tr>
   <tr>
+    <td align="center"><img src="docs/capturas/busqueda-set.png" width="230"><br><sub>Añadir por set</sub></td>
+    <td align="center"><img src="docs/capturas/coleccion.png" width="230"><br><sub>Colección y valor</sub></td>
     <td align="center"><img src="docs/capturas/detalle.png" width="230"><br><sub>Detalle de carta</sub></td>
-    <td align="center"><img src="docs/capturas/mazos.png" width="230"><br><sub>Sugerencias de mazo</sub></td>
-    <td align="center"><img src="docs/capturas/valor-historico.png" width="230"><br><sub>Valor de la colección</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/capturas/sets-completados.png" width="230"><br><sub>Mis sets (progreso)</sub></td>
+    <td></td>
+    <td></td>
   </tr>
 </table>
-
--->
 
 ---
 
