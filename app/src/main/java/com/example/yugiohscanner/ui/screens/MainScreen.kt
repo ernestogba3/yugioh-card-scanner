@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -125,8 +125,8 @@ fun MainScreen(coleccionViewModel: ColeccionViewModel = viewModel()) {
                     NavigationBarItem(
                         selected = pantallaActual is AppScreen.Scanner,
                         onClick = { pantallaActual = AppScreen.Scanner },
-                        icon = { Icon(Icons.Default.Search, contentDescription = "Escáner") },
-                        label = { Text("Escáner") },
+                        icon = { Icon(Icons.Default.Add, contentDescription = "Añadir") },
+                        label = { Text("Añadir") },
                         colors = colores
                     )
                     NavigationBarItem(
@@ -163,7 +163,7 @@ fun MainScreen(coleccionViewModel: ColeccionViewModel = viewModel()) {
                 CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onBackground) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         when (pantalla) {
-                            is AppScreen.Scanner -> ScannerScreen()
+                            is AppScreen.Scanner -> AnadirFlow()
                             is AppScreen.Coleccion -> ColeccionScreen()
                             is AppScreen.Mazos -> MazosScreen()
                             is AppScreen.Ajustes -> AjustesScreen()
@@ -182,6 +182,35 @@ fun MainScreen(coleccionViewModel: ColeccionViewModel = viewModel()) {
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 12.dp)
                 .padding(bottom = 96.dp)
+        )
+    }
+}
+
+/** Pasos internos del flujo "Añadir cartas" (pestaña "Añadir"). */
+private enum class PasoAnadir { Entrada, Escanear, Manual, PorSet }
+
+/**
+ * Flujo de la pestaña "Añadir": aterriza en la pantalla de entrada y desde ahí lleva a escanear
+ * (cámara directa), búsqueda manual o el navegador por set. Cada sub-pantalla vuelve a la entrada.
+ */
+@Composable
+private fun AnadirFlow() {
+    var paso by remember { mutableStateOf(PasoAnadir.Entrada) }
+    when (paso) {
+        PasoAnadir.Entrada -> AddCardsEntryScreen(
+            onEscanear = { paso = PasoAnadir.Escanear },
+            onPorSet = { paso = PasoAnadir.PorSet },
+            onManual = { paso = PasoAnadir.Manual }
+        )
+        PasoAnadir.Escanear -> ScannerScreen(
+            abrirCamaraAlEntrar = true,
+            onVolver = { paso = PasoAnadir.Entrada }
+        )
+        PasoAnadir.Manual -> ScannerScreen(
+            onVolver = { paso = PasoAnadir.Entrada }
+        )
+        PasoAnadir.PorSet -> SetBrowserScreen(
+            onCerrar = { paso = PasoAnadir.Entrada }
         )
     }
 }

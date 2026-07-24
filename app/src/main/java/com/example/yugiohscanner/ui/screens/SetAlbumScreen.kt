@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -20,27 +21,37 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.yugiohscanner.ui.theme.Granate
 import com.example.yugiohscanner.ui.theme.OroClaro
 import com.example.yugiohscanner.ui.theme.OroYuGiOh
 import com.example.yugiohscanner.ui.viewmodel.CartaAlbum
@@ -49,9 +60,22 @@ import com.example.yugiohscanner.ui.viewmodel.EstadoAlbum
 /**
  * Álbum de un set: muestra TODAS sus cartas. Las que el usuario posee salen a color; las que
  * le faltan, en gris (desaturadas y atenuadas). Arriba, el porcentaje de completado.
+ *
+ * Si se pasa [onAnadirCartas] (modo AÑADIR, usado por "Por set"), aparece una barra inferior para
+ * añadir todo el set de golpe o elegir cartas concretas. Si es null (modo SOLO LECTURA, usado por
+ * "Mis sets"), el álbum solo se consulta y al tocar una carta se abre su detalle.
  */
 @Composable
-fun SetAlbumScreen(estado: EstadoAlbum, onCartaClick: (Int) -> Unit, onCerrar: () -> Unit) {
+fun SetAlbumScreen(
+    estado: EstadoAlbum,
+    onCartaClick: (Int) -> Unit,
+    onCerrar: () -> Unit,
+    onAnadirCartas: ((Set<Int>) -> Unit)? = null
+) {
+    // Modo selección y cartas elegidas (solo relevantes en modo añadir).
+    var modoSeleccion by remember { mutableStateOf(false) }
+    var seleccion by remember { mutableStateOf(setOf<Int>()) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,7 +91,8 @@ fun SetAlbumScreen(estado: EstadoAlbum, onCartaClick: (Int) -> Unit, onCerrar: (
                 text = (estado as? EstadoAlbum.Exito)?.setName ?: "Álbum del set",
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
@@ -86,11 +111,111 @@ fun SetAlbumScreen(estado: EstadoAlbum, onCartaClick: (Int) -> Unit, onCerrar: (
                     contentPadding = PaddingValues(bottom = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
                 ) {
                     items(estado.cartas, key = { it.cardId }) { carta ->
-                        CartaAlbumItem(carta = carta, onClick = { onCartaClick(carta.cardId) })
+                        CartaAlbumItem(
+                            carta = carta,
+                            seleccionada = carta.cardId in seleccion,
+                            modoSeleccion = modoSeleccion,
+                            onClick = {
+                                if (modoSeleccion) {
+                                    seleccion = if (carta.cardId in seleccion) {
+                                        seleccion - carta.cardId
+                                    } else {
+                                        seleccion + carta.cardId
+                                    }
+                                } else {
+                                    onCartaClick(carta.cardId)
+                                }
+                            }
+                        )
                     }
+                }
+
+                // Barra de añadir (solo en modo AÑADIR, es decir, si hay callback).
+                if (onAnadirCartas != null) {
+                    BarraAnadir(
+                        total = estado.total,
+                        modoSeleccion = modoSeleccion,
+                        nSeleccionadas = seleccion.size,
+                        onAnadirTodo = { onAnadirCartas(estado.cartas.map { it.cardId }.toSet()) },
+                        onToggleSeleccion = {
+                            modoSeleccion = !modoSeleccion
+                            if (!modoSeleccion) seleccion = emptySet()
+                        },
+                        onAnadirSeleccionadas = {
+                            onAnadirCartas(seleccion)
+                            seleccion = emptySet()
+                            modoSeleccion = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Barra inferior de "Añadir": botón grande para añadir todo el set y, debajo, un modo para elegir
+ * cartas concretas. Se apoya solo en el callback [onAnadirTodo]/[onAnadirSeleccionadas] del VM.
+ */
+@Composable
+private fun BarraAnadir(
+    total: Int,
+    modoSeleccion: Boolean,
+    nSeleccionadas: Int,
+    onAnadirTodo: () -> Unit,
+    onToggleSeleccion: () -> Unit,
+    onAnadirSeleccionadas: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Botón estrella: añade el set completo (una copia de cada carta).
+        Button(
+            onClick = onAnadirTodo,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Granate,
+                contentColor = Color.White
+            )
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Añadir todo el set ($total)", fontWeight = FontWeight.SemiBold)
+        }
+
+        // Modo "elegir cartas": alterna la selección o, si ya hay elegidas, las añade.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = onToggleSeleccion,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(if (modoSeleccion) "Cancelar" else "Elegir cartas")
+            }
+            if (modoSeleccion) {
+                Button(
+                    onClick = onAnadirSeleccionadas,
+                    enabled = nSeleccionadas > 0,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = OroYuGiOh,
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text(
+                        if (nSeleccionadas > 0) "Añadir elegidas ($nSeleccionadas)" else "Elige cartas",
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
@@ -151,7 +276,12 @@ private fun CabeceraProgreso(poseidas: Int, total: Int) {
 }
 
 @Composable
-private fun CartaAlbumItem(carta: CartaAlbum, onClick: () -> Unit) {
+private fun CartaAlbumItem(
+    carta: CartaAlbum,
+    seleccionada: Boolean,
+    modoSeleccion: Boolean,
+    onClick: () -> Unit
+) {
     // Las cartas que faltan se ven en gris (desaturadas) y atenuadas.
     val filtroGris = remember0Saturacion()
 
@@ -159,8 +289,12 @@ private fun CartaAlbumItem(carta: CartaAlbum, onClick: () -> Unit) {
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
         border = BorderStroke(
-            1.dp,
-            if (carta.poseida) OroYuGiOh.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline
+            if (seleccionada) 2.dp else 1.dp,
+            when {
+                seleccionada -> Granate
+                carta.poseida -> OroYuGiOh.copy(alpha = 0.6f)
+                else -> MaterialTheme.colorScheme.outline
+            }
         ),
         modifier = Modifier.aspectRatio(0.72f)
     ) {
@@ -188,6 +322,25 @@ private fun CartaAlbumItem(carta: CartaAlbum, onClick: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                    )
+                }
+            }
+            // En modo selección, marca la carta elegida con un check granate en la esquina.
+            if (modoSeleccion && seleccionada) {
+                Surface(
+                    color = Granate,
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = "Elegida",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .padding(3.dp)
+                            .size(16.dp)
                     )
                 }
             }

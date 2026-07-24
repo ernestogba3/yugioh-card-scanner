@@ -4,7 +4,10 @@ import android.content.Context
 import com.example.yugiohscanner.data.catalog.Card
 import com.example.yugiohscanner.data.catalog.CardArt
 import com.example.yugiohscanner.data.catalog.CardHash
+import com.example.yugiohscanner.data.catalog.CardSet
 import com.example.yugiohscanner.data.catalog.CatalogDatabase
+import com.example.yugiohscanner.data.catalog.SetCartaCoincidencia
+import com.example.yugiohscanner.data.model.CartaGuardada
 import com.example.yugiohscanner.data.model.CartaYuGiOh
 import com.example.yugiohscanner.data.scan.PHash
 import com.example.yugiohscanner.data.search.Similitud
@@ -180,9 +183,66 @@ class CardRepository(context: Context) {
     suspend fun obtenerTotalesPorSet(): Map<String, Int> =
         dao.obtenerSets().associate { it.setName to it.numOfCards }
 
+    /**
+     * Todos los sets del catálogo (para el navegador "Por set" al añadir cartas). Se ordenan
+     * por nombre y se descartan los que no tienen cartas. No depende de la colección: lista el
+     * catálogo entero, así se puede añadir un Structure Deck que aún no tienes.
+     */
+    suspend fun obtenerSetsCatalogo(): List<CardSet> =
+        dao.obtenerSets()
+            .filter { it.numOfCards > 0 }
+            .sortedBy { it.setName }
+
     /** Todas las cartas (id, nombre, imagen) de un set, para el álbum por sets. */
     suspend fun obtenerCartasDeSet(setName: String): List<Card> =
         dao.obtenerCartasDeSet(setName)
+
+    /**
+     * Sets que contienen una carta cuyo nombre (ES o EN) coincide con [nombre], con una carta
+     * representativa por set. Permite buscar un set escribiendo el nombre de una carta (también en
+     * español) en el navegador "Por set" y mostrar qué carta lo hizo aparecer.
+     *
+     * El filtrado es INSENSIBLE A ACENTOS: se normaliza la consulta y se compara contra el índice
+     * de nombres ya normalizado (misma normalización que el buscador del escáner), así "dragon"
+     * encuentra "Dragón". Con los ids que coinciden se recuperan sus sets del catálogo.
+     */
+    suspend fun buscarCoincidenciasEnSets(nombre: String): List<SetCartaCoincidencia> =
+        withContext(Dispatchers.Default) {
+            val qNorm = TextoUtil.normalizar(nombre)
+            if (qNorm.isEmpty()) return@withContext emptyList()
+
+            val coincidentes = indiceNombres().filter {
+                (it.normEs?.contains(qNorm) == true) || it.normEn.contains(qNorm)
+            }
+            if (coincidentes.isEmpty()) return@withContext emptyList()
+
+            val nombrePorId = coincidentes.associateBy { it.id }
+            // Sets de esas cartas, en lotes de 900 (límite de variables de un IN en SQLite).
+            val pares = coincidentes.map { it.id }
+                .chunked(900)
+                .flatMap { dao.obtenerSetsDeCartas(it) }
+
+            // Una carta representativa por set (la primera que aparezca).
+            val vistos = HashSet<String>()
+            val resultado = ArrayList<SetCartaCoincidencia>()
+            for (par in pares) {
+                if (par.setName.isBlank() || !vistos.add(par.setName)) continue
+                val n = nombrePorId[par.cardId] ?: continue
+                resultado.add(SetCartaCoincidencia(par.setName, n.origEs, n.origEn))
+            }
+            resultado.sortedBy { it.setName }
+        }
+
+    /**
+     * Cartas de un set listas para GUARDAR en la colección (una [CartaGuardada] por carta del
+     * set). Cada una lleva el set concreto (nombre + código) y la rareza de su impresión en ese
+     * set, tomada de `card_prints`. Es la base de "Añadir todo el set" y de la selección parcial.
+     */
+    suspend fun cartasGuardablesDeSet(setName: String): List<CartaGuardada> =
+        dao.obtenerCartasDeSet(setName).map { card ->
+            // El mapeo (set + rareza desde la impresión) es lógica pura y testeable: ver [SetGuardado].
+            SetGuardado.cartaGuardable(card, dao.obtenerPrints(card.id), setName)
+        }
 
     /** Ids de las cartas de un set (para el % de completado de la caja, igual que el álbum). */
     suspend fun obtenerCardIdsDeSet(setName: String): List<Long> =
@@ -200,14 +260,25 @@ class CardRepository(context: Context) {
                 EntradaIndice(
                     id = it.id,
                     normEs = it.nameEs?.let(TextoUtil::normalizar),
-                    normEn = TextoUtil.normalizar(it.nameEn)
+                    normEn = TextoUtil.normalizar(it.nameEn),
+                    origEs = it.nameEs,
+                    origEn = it.nameEn
                 )
             }.also { indice = it }
         }
     }
 
-    /** Entrada del índice en memoria con los nombres ya normalizados (no se re-normaliza). */
-    private data class EntradaIndice(val id: Long, val normEs: String?, val normEn: String)
+    /**
+     * Entrada del índice en memoria: nombres ya normalizados (para comparar sin re-normalizar) y
+     * los originales (para mostrarlos tal cual, p. ej. la carta que hizo aparecer un set).
+     */
+    private data class EntradaIndice(
+        val id: Long,
+        val normEs: String?,
+        val normEn: String,
+        val origEs: String?,
+        val origEn: String
+    )
 
     // --- Mapeo catálogo -> modelo de UI (incluye los sets de la carta) ---
 

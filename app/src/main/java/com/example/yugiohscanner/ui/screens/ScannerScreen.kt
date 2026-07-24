@@ -9,15 +9,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -55,7 +58,11 @@ import com.example.yugiohscanner.ui.viewmodel.ScannerViewModel
 @Composable
 fun ScannerScreen(
     scannerViewModel: ScannerViewModel = viewModel(),
-    coleccionViewModel: ColeccionViewModel = viewModel()
+    coleccionViewModel: ColeccionViewModel = viewModel(),
+    // Si true, abre la cámara nada más entrar (método "Escanear" de la pantalla de entrada).
+    abrirCamaraAlEntrar: Boolean = false,
+    // Si se pasa, muestra una fila para volver a la pantalla de entrada de "Añadir".
+    onVolver: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val estado by scannerViewModel.estado.collectAsState()
@@ -101,6 +108,18 @@ fun ScannerScreen(
         }
     }
 
+    // Método "Escanear": abrir la cámara al entrar (pidiendo permiso si hace falta). Solo una vez.
+    LaunchedEffect(Unit) {
+        if (abrirCamaraAlEntrar) {
+            val permiso = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+            if (permiso == PackageManager.PERMISSION_GRANTED) {
+                mostrarCamara = true
+            } else {
+                permisoCamara.launch(Manifest.permission.CAMERA)
+            }
+        }
+    }
+
     if (mostrarCamara) {
         CameraScreen(
             onIdentificar = { frame, callback -> scannerViewModel.identificarFrame(frame, callback) },
@@ -142,6 +161,18 @@ fun ScannerScreen(
         contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        if (onVolver != null) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onVolver) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Añadir cartas", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+        }
+
         item {
             Text("Buscar Carta", style = MaterialTheme.typography.headlineMedium)
         }

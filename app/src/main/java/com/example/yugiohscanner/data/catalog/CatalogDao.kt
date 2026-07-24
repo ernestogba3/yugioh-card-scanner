@@ -89,6 +89,14 @@ interface CatalogDao {
     suspend fun obtenerCardIdsDeSet(setName: String): List<Long>
 
     /**
+     * En qué sets aparecen las cartas indicadas (proyección cardId + setName). Se usa para la
+     * búsqueda de sets "por carta": el filtrado por nombre se hace en Kotlin sobre el índice ya
+     * normalizado (sin acentos), y con los ids resultantes se recuperan aquí sus sets.
+     */
+    @Query("SELECT DISTINCT cardId AS cardId, setName AS setName FROM card_prints WHERE cardId IN (:ids)")
+    suspend fun obtenerSetsDeCartas(ids: List<Long>): List<CartaEnSet>
+
+    /**
      * Índice ligero (solo id + nombres) de TODAS las cartas. El repositorio lo carga una vez
      * y hace sobre él el ranking fuzzy en memoria (Levenshtein / Jaro-Winkler) para tolerar
      * las erratas del OCR mejor que una búsqueda por LIKE o FTS.

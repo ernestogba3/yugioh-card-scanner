@@ -25,6 +25,18 @@ guarda en un álbum digital. Todo el catálogo viaja dentro de la app, así que 
   3. **Nombre por OCR** como último respaldo, con búsqueda difusa tolerante a erratas.
 - Aviso emergente al guardar (nueva / duplicada) con opción de **deshacer**.
 
+### 📥 Añadir cartas (3 formas)
+
+La pestaña **«Añadir»** aterriza en una pantalla de entrada donde eliges el método según lo que acabas de conseguir:
+
+| Método | Cuándo usarlo |
+|---|---|
+| 📷 **Escanear** | Cartas sueltas, *singles* o un sobre recién abierto. Se añaden una a una por OCR/pHash. |
+| 📦 **Por set** | Productos cerrados, sobre todo **Structure Decks**. Buscas el set en el catálogo y pulsas **«Añadir todo el set»** para meter sus cartas de una vez (o eliges cartas sueltas del grid). |
+| 🔍 **Manual** | Rescate: carta sin passcode o cuando el escáner falla. Búsqueda por nombre + filtros. |
+
+> El flujo estrella es **Por set → Añadir todo el set**: evita escanear carta por carta un producto cuyo contenido ya se conoce.
+
 ### 📚 Colección
 - Álbum con varias copias por carta, **condición**, **rareza**, **favoritos** y **selección de arte**.
 - Chips de estado (p. ej. **«EN MAZO»** para las cartas que ya usas en algún mazo).
